@@ -1,4 +1,4 @@
-import subprocess, os, sys, ipykernel
+import subprocess
 
 def gitclone(url, recursive=False, dest=None):
     command = ['git', 'clone', url]
