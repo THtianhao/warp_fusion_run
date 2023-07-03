@@ -11,7 +11,7 @@ def pipi(modulestr):
     print(res)
 
 def pipis(modulestrs:list):
-    pip_cmd = ['python','-m','pip', '-q', 'install']
+    pip_cmd = ['python','-m','pip', '-q', '-y','install']
     pips_cmd = pip_cmd + modulestrs
     res = subprocess.run(pips_cmd, stdout=subprocess.PIPE).stdout.decode('utf-8')
     print(res)
