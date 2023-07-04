@@ -1,6 +1,6 @@
 import os
 
-from utils.path import createPath
+from modules.utils.path import createPath
 root_path = os.getcwd()
 
 initDirPath = os.path.join(root_path,'init_images')

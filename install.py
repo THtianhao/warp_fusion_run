@@ -1,8 +1,8 @@
 import subprocess
 import os
-from utils.cmd import install_requirement, pipi, pipie, pipis, gitclone, unpip
-from utils.nvidia_utils import print_card
-from utils.env import root_path
+from modules.utils.cmd import install_requirement, pipi, pipie, pipis, gitclone, unpip
+from modules.utils.nvidia_utils import print_card
+from modules.utils.env import root_path
 
 if __name__ == "__main__":
     print_card()
