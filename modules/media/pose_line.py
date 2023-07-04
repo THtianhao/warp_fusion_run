@@ -1,4 +1,5 @@
 from typing import Mapping
+import torchvision.transforms.functional as TF
 
 import mediapipe as mp
 
@@ -6,15 +7,43 @@ import numpy
 import torch
 import math
 from PIL import Image
+import cv2
+import gc
+import io
+import math
+from IPython import display
+# !wget "https://download.pytorch.org/models/vgg16-397923af.pth" -O /root/.cache/torch/hub/checkpoints/vgg16-397923af.pth
+from PIL import Image, ImageOps
+import requests
+import json
+from torch import nn
+from torch.nn import functional as F
+import torchvision.transforms as T
+import torchvision.transforms.functional as TF
+from tqdm.notebook import tqdm
+# from CLIP import clip
+from resize_right import resize
+import numpy as np
+import matplotlib.pyplot as plt
+import random
+from ipywidgets import Output
+
+DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+print('Using device:', DEVICE)
+device = DEVICE  # At least one of the modules expects this name..
+
 
 def append_dims(x, n):
     return x[(Ellipsis, *(None, ) * (n - x.ndim))]
 
+
 def expand_to_planes(x, shape):
     return append_dims(x, len(shape)).repeat([1, 1, *shape[2:]])
 
+
 def alpha_sigma_to_t(alpha, sigma):
     return torch.atan2(sigma, alpha) * 2 / math.pi
+
 
 def t_to_alpha_sigma(t):
     return torch.cos(t * math.pi / 2), torch.sin(t * math.pi / 2)
@@ -71,15 +100,12 @@ def draw_pupils(image, landmark_list, drawing_spec, halfwidth: int = 2):
     if image_channels != 3:  # BGR channels
         raise ValueError('Input image must contain three channel bgr data.')
     for idx, landmark in enumerate(landmark_list.landmark):
-        if (
-                (landmark.HasField('visibility') and landmark.visibility < 0.9) or
-                (landmark.HasField('presence') and landmark.presence < 0.5)
-        ):
+        if ((landmark.HasField('visibility') and landmark.visibility < 0.9) or (landmark.HasField('presence') and landmark.presence < 0.5)):
             continue
         if landmark.x >= 1.0 or landmark.x < 0 or landmark.y >= 1.0 or landmark.y < 0:
             continue
-        image_x = int(image_cols*landmark.x)
-        image_y = int(image_rows*landmark.y)
+        image_x = int(image_cols * landmark.x)
+        image_y = int(image_rows * landmark.y)
         draw_color = None
         if isinstance(drawing_spec, Mapping):
             if drawing_spec.get(idx) is None:
@@ -88,7 +114,7 @@ def draw_pupils(image, landmark_list, drawing_spec, halfwidth: int = 2):
                 draw_color = drawing_spec[idx].color
         elif isinstance(drawing_spec, DrawingSpec):
             draw_color = drawing_spec.color
-        image[image_y-halfwidth:image_y+halfwidth, image_x-halfwidth:image_x+halfwidth, :] = draw_color
+        image[image_y - halfwidth:image_y + halfwidth, image_x - halfwidth:image_x + halfwidth, :] = draw_color
 
 
 def reverse_channels(image):
@@ -98,12 +124,7 @@ def reverse_channels(image):
     return image[:, :, ::-1]
 
 
-def generate_annotation(
-        input_image: Image.Image,
-        max_faces: int,
-        min_face_size_pixels: int = 0,
-        return_annotation_data: bool = False
-):
+def generate_annotation(input_image: Image.Image, max_faces: int, min_face_size_pixels: int = 0, return_annotation_data: bool = False):
     """
     Find up to 'max_faces' inside the provided input image.
     If min_face_size_pixels is provided and nonzero it will be used to filter faces that occupy less than this many
@@ -125,7 +146,7 @@ def generate_annotation(
         img_rgb = numpy.asarray(input_image)
         results = facemesh.process(img_rgb).multi_face_landmarks
         if results is None:
-          return None
+            return None
         faces_found_before_filtering = len(results)
 
         # Filter faces that are too small
@@ -161,30 +182,19 @@ def generate_annotation(
 
         # Draw detected faces:
         for face_landmarks in filtered_landmarks:
-            mp_drawing.draw_landmarks(
-                empty,
-                face_landmarks,
-                connections=face_connection_spec.keys(),
-                landmark_drawing_spec=None,
-                connection_drawing_spec=face_connection_spec
-            )
+            mp_drawing.draw_landmarks(empty, face_landmarks, connections=face_connection_spec.keys(), landmark_drawing_spec=None, connection_drawing_spec=face_connection_spec)
             draw_pupils(empty, face_landmarks, iris_landmark_spec, 2)
 
         # Flip BGR back to RGB.
         empty = reverse_channels(empty)
 
         # We might have to generate a composite.
+        annotated = None
         if return_annotation_data:
             # Note that we're copying the input image AND flipping the channels so we can draw on top of it.
             annotated = reverse_channels(numpy.asarray(input_image)).copy()
             for face_landmarks in filtered_landmarks:
-                mp_drawing.draw_landmarks(
-                    empty,
-                    face_landmarks,
-                    connections=face_connection_spec.keys(),
-                    landmark_drawing_spec=None,
-                    connection_drawing_spec=face_connection_spec
-                )
+                mp_drawing.draw_landmarks(empty, face_landmarks, connections=face_connection_spec.keys(), landmark_drawing_spec=None, connection_drawing_spec=face_connection_spec)
                 draw_pupils(empty, face_landmarks, iris_landmark_spec, 2)
             annotated = reverse_channels(annotated)
 
@@ -193,11 +203,14 @@ def generate_annotation(
         else:
             return empty, annotated, faces_found_before_filtering, faces_remaining_after_filtering
 
+
 # https://gist.github.com/adefossez/0646dbe9ed4005480a2407c62aac8869
 import PIL
 
+
 def interp(t):
-    return 3 * t ** 2 - 2 * t ** 3
+    return 3 * t**2 - 2 * t**3
+
 
 def perlin(width, height, scale=10, device=None):
     gx, gy = torch.randn(2, width + 1, height + 1, 1, 1, device=device)
@@ -212,11 +225,12 @@ def perlin(width, height, scale=10, device=None):
     dots += (1 - wx) * (1 - wy) * (-gx[1:, 1:] * (1 - xs) - gy[1:, 1:] * (1 - ys))
     return dots.permute(0, 2, 1, 3).contiguous().view(width * scale, height * scale)
 
+
 def perlin_ms(octaves, width, height, grayscale, device=device):
     out_array = [0.5] if grayscale else [0.5, 0.5, 0.5]
     # out_array = [0.0] if grayscale else [0.0, 0.0, 0.0]
     for i in range(1 if grayscale else 3):
-        scale = 2 ** len(octaves)
+        scale = 2**len(octaves)
         oct_width = width
         oct_height = height
         for oct in octaves:
@@ -226,6 +240,7 @@ def perlin_ms(octaves, width, height, grayscale, device=device):
             oct_width *= 2
             oct_height *= 2
     return torch.cat(out_array)
+
 
 def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True):
     out = perlin_ms(octaves, width, height, grayscale)
@@ -240,20 +255,22 @@ def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True)
     out = ImageOps.autocontrast(out)
     return out
 
+
 def regen_perlin():
     if perlin_mode == 'color':
-        init = create_perlin_noise([1.5 ** -i * 0.5 for i in range(12)], 1, 1, False)
-        init2 = create_perlin_noise([1.5 ** -i * 0.5 for i in range(8)], 4, 4, False)
+        init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False)
+        init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, False)
     elif perlin_mode == 'gray':
-        init = create_perlin_noise([1.5 ** -i * 0.5 for i in range(12)], 1, 1, True)
-        init2 = create_perlin_noise([1.5 ** -i * 0.5 for i in range(8)], 4, 4, True)
+        init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, True)
+        init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True)
     else:
-        init = create_perlin_noise([1.5 ** -i * 0.5 for i in range(12)], 1, 1, False)
-        init2 = create_perlin_noise([1.5 ** -i * 0.5 for i in range(8)], 4, 4, True)
+        init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False)
+        init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True)
 
     init = TF.to_tensor(init).add(TF.to_tensor(init2)).div(2).to(device).unsqueeze(0).mul(2).sub(1)
     del init2
     return init.expand(batch_size, -1, -1, -1)
+
 
 def fetch(url_or_path):
     if str(url_or_path).startswith('http://') or str(url_or_path).startswith('https://'):
@@ -265,11 +282,13 @@ def fetch(url_or_path):
         return fd
     return open(url_or_path, 'rb')
 
+
 def read_image_workaround(path):
     """OpenCV reads images as BGR, Pillow saves them as RGB. Work around
     this incompatibility to avoid colour inversions."""
     im_tmp = cv2.imread(path)
     return cv2.cvtColor(im_tmp, cv2.COLOR_BGR2RGB)
+
 
 def parse_prompt(prompt):
     if prompt.startswith('http://') or prompt.startswith('https://'):
@@ -280,13 +299,16 @@ def parse_prompt(prompt):
     vals = vals + ['', '1'][len(vals):]
     return vals[0], float(vals[1])
 
+
 def sinc(x):
     return torch.where(x != 0, torch.sin(math.pi * x) / (math.pi * x), x.new_ones([]))
+
 
 def lanczos(x, a):
     cond = torch.logical_and(-a < x, x < a)
     out = torch.where(cond, sinc(x) * sinc(x / a), x.new_zeros([]))
     return out / out.sum()
+
 
 def ramp(ratio, width):
     n = math.ceil(width / ratio + 1)
@@ -296,6 +318,7 @@ def ramp(ratio, width):
         out[i] = cur
         cur += ratio
     return torch.cat([-out[1:].flip([0]), out])[1:-1]
+
 
 def resample(input, size, align_corners=True):
     n, c, h, w = input.shape
@@ -318,7 +341,9 @@ def resample(input, size, align_corners=True):
     input = input.reshape([n, c, h, w])
     return F.interpolate(input, size, mode='bicubic', align_corners=align_corners)
 
+
 class MakeCutouts(nn.Module):
+
     def __init__(self, cut_size, cutn, skip_augs=False):
         super().__init__()
         self.cut_size = cut_size
@@ -359,14 +384,14 @@ class MakeCutouts(nn.Module):
         cutouts = torch.cat(cutouts, dim=0)
         return cutouts
 
+
 cutout_debug = False
 padargs = {}
 
+
 class MakeCutoutsDango(nn.Module):
-    def __init__(self, cut_size,
-                 Overview=4,
-                 InnerCrop=0, IC_Size_Pow=0.5, IC_Grey_P=0.2
-                 ):
+
+    def __init__(self, cut_size, Overview=4, InnerCrop=0, IC_Size_Pow=0.5, IC_Grey_P=0.2):
         super().__init__()
         self.cut_size = cut_size
         self.Overview = Overview
@@ -441,7 +466,7 @@ class MakeCutoutsDango(nn.Module):
 
         if self.InnerCrop > 0:
             for i in range(self.InnerCrop):
-                size = int(torch.rand([]) ** self.IC_Size_Pow * (max_size - min_size) + min_size)
+                size = int(torch.rand([])**self.IC_Size_Pow * (max_size - min_size) + min_size)
                 offsetx = torch.randint(0, sideX - size + 1, ())
                 offsety = torch.randint(0, sideY - size + 1, ())
                 cutout = input[:, :, offsety:offsety + size, offsetx:offsetx + size]
@@ -458,21 +483,25 @@ class MakeCutoutsDango(nn.Module):
         if skip_augs is not True: cutouts = self.augs(cutouts)
         return cutouts
 
+
 def spherical_dist_loss(x, y):
     x = F.normalize(x, dim=-1)
     y = F.normalize(y, dim=-1)
     return (x - y).norm(dim=-1).div(2).arcsin().pow(2).mul(2)
+
 
 def tv_loss(input):
     """L2 total variation loss, as in Mahendran et al."""
     input = F.pad(input, (0, 1, 0, 1), 'replicate')
     x_diff = input[..., :-1, 1:] - input[..., :-1, :-1]
     y_diff = input[..., 1:, :-1] - input[..., :-1, :-1]
-    return (x_diff ** 2 + y_diff ** 2).mean([1, 2, 3])
+    return (x_diff**2 + y_diff**2).mean([1, 2, 3])
+
 
 def get_image_from_lat(lat):
     img = sd_model.decode_first_stage(lat.cuda())[0]
     return TF.to_pil_image(img.add(1).div(2).clamp(0, 1))
+
 
 def get_lat_from_pil(frame):
     print(frame.shape, 'frame2pil.shape')
@@ -481,11 +510,14 @@ def get_lat_from_pil(frame):
     frame = 2 * torch.from_numpy(frame).float().cuda() - 1.
     return sd_model.get_first_stage_encoding(sd_model.encode_first_stage(frame))
 
+
 def range_loss(input):
     return (input - input.clamp(-1, 1)).pow(2).mean([1, 2, 3])
 
+
 stop_on_next_loop = False  # Make sure GPU memory doesn't get corrupted from cancelling the run mid-way through, allow a full frame to complete
 TRANSLATION_SCALE = 1.0 / 200.0
+
 
 def get_sched_from_json(frame_num, sched_json, blend=False):
     frame_num = int(frame_num)
@@ -494,7 +526,8 @@ def get_sched_from_json(frame_num, sched_json, blend=False):
     for key in sched_json.keys():
         sched_int[int(key)] = sched_json[key]
     sched_json = sched_int
-    keys = sorted(list(sched_json.keys()));  # print(keys)
+    keys = sorted(list(sched_json.keys()))
+    # print(keys)
     if frame_num < 0:
         frame_num = max(keys)
     try:
@@ -504,7 +537,8 @@ def get_sched_from_json(frame_num, sched_json, blend=False):
 
     # print('clamped frame num ', frame_num)
     if frame_num in keys:
-        return sched_json[frame_num];  # print('frame in keys')
+        return sched_json[frame_num]
+        # print('frame in keys')
     if frame_num not in keys:
         for i in range(len(keys) - 1):
             k1 = keys[i]
@@ -520,13 +554,16 @@ def get_sched_from_json(frame_num, sched_json, blend=False):
             # else: print(f'frame {frame_num} not in {k1} {k2}')
     return 0
 
+
 def get_scheduled_arg(frame_num, schedule):
     if isinstance(schedule, list):
         return schedule[frame_num] if frame_num < len(schedule) else schedule[-1]
     if isinstance(schedule, dict):
         return get_sched_from_json(frame_num, schedule, blend=blend_json_schedules)
 
+
 import piexif
+
 
 def json2exif(settings):
     settings = json.dumps(settings)
@@ -535,10 +572,12 @@ def json2exif(settings):
     exif_dat = piexif.dump(exif_dict)
     return exif_dat
 
+
 def img2tensor(img, size=None):
     img = img.convert('RGB')
     if size: img = img.resize(size, warp_interp)
     return torch.from_numpy(np.array(img)).permute(2, 0, 1).float()[None, ...].cuda()
+
 
 def warp_towards_init_fn(sample_pil, init_image):
     print('sample, init', type(sample_pil), type(init_image))
@@ -547,10 +586,18 @@ def warp_towards_init_fn(sample_pil, init_image):
     init_image = img2tensor(init_image, size)
     flo = get_flow(init_image, sample, raft_model, half=flow_lq)
     # flo = get_flow(sample, init_image, raft_model, half=flow_lq)
-    warped = warp(sample_pil, sample_pil, flo_path=flo, blend=1, weights_path=None,
-                  forward_clip=0, pad_pct=padding_ratio, padding_mode=padding_mode,
-                  inpaint_blend=inpaint_blend, warp_mul=warp_strength)
+    warped = warp(sample_pil,
+                  sample_pil,
+                  flo_path=flo,
+                  blend=1,
+                  weights_path=None,
+                  forward_clip=0,
+                  pad_pct=padding_ratio,
+                  padding_mode=padding_mode,
+                  inpaint_blend=inpaint_blend,
+                  warp_mul=warp_strength)
     return warped
+
 
 def do_3d_step(img_filepath, frame_num, forward_clip):
     global warp_mode, filename, match_frame, first_frame
@@ -599,9 +646,16 @@ def do_3d_step(img_filepath, frame_num, forward_clip):
 
         if not warp_forward:
             printf('warping')
-            warped = warp(prev, frame2, flo_path, blend=flow_blend, weights_path=weights_path,
-                          forward_clip=forward_clip, pad_pct=padding_ratio, padding_mode=padding_mode,
-                          inpaint_blend=inpaint_blend, warp_mul=warp_strength)
+            warped = warp(prev,
+                          frame2,
+                          flo_path,
+                          blend=flow_blend,
+                          weights_path=weights_path,
+                          forward_clip=forward_clip,
+                          pad_pct=padding_ratio,
+                          padding_mode=padding_mode,
+                          inpaint_blend=inpaint_blend,
+                          warp_mul=warp_strength)
         else:
             flo_path = f"{flo_folder}/{frame1_path.split('/')[-1]}_12.npy"
             flo = np.load(flo_path)
@@ -631,9 +685,16 @@ def do_3d_step(img_filepath, frame_num, forward_clip):
                 warped = Image.fromarray(match_color_var(first_frame, warped, opacity=color_match_frame_str, f=colormatch_method_fn, regrain=colormatch_regrain))
     if warp_mode == 'use_latent':
         prev = torch.load(img_filepath[:-4] + '_lat.pt')
-        warped = warp_lat(prev, frame2, flo_path, blend=flow_blend, weights_path=weights_path,
-                          forward_clip=forward_clip, pad_pct=padding_ratio, padding_mode=padding_mode,
-                          inpaint_blend=inpaint_blend, warp_mul=warp_strength)
+        warped = warp_lat(prev,
+                          frame2,
+                          flo_path,
+                          blend=flow_blend,
+                          weights_path=weights_path,
+                          forward_clip=forward_clip,
+                          pad_pct=padding_ratio,
+                          padding_mode=padding_mode,
+                          inpaint_blend=inpaint_blend,
+                          warp_mul=warp_strength)
     # warped = warped.resize((side_x,side_y), warp_interp)
 
     if use_background_mask and apply_mask_after_warp:
@@ -649,8 +710,10 @@ def do_3d_step(img_filepath, frame_num, forward_clip):
 
     return warped
 
+
 from tqdm.notebook import trange
 import copy
+
 
 def get_frame_from_color_mode(mode, offset, frame_num):
     if mode == 'color_video':
@@ -675,7 +738,15 @@ def get_frame_from_color_mode(mode, offset, frame_num):
         filename = f'{videoFramesFolder}/{offset + 1:06}.jpg'
     return filename
 
-def apply_mask(init_image, frame_num, background, background_source, invert_mask=False, warp_mode='use_image', ):
+
+def apply_mask(
+    init_image,
+    frame_num,
+    background,
+    background_source,
+    invert_mask=False,
+    warp_mode='use_image',
+):
     global mask_clip_low, mask_clip_high
     if warp_mode == 'use_image':
         size = init_image.size
@@ -718,6 +789,7 @@ def apply_mask(init_image, frame_num, background, background_source, invert_mask
         bg = init_image * init_image_alpha + bg * (1 - init_image_alpha)
     return bg
 
+
 def softcap(arr, thresh=0.8, q=0.95):
     cap = torch.quantile(abs(arr).float(), q)
     printf('q -----', torch.quantile(abs(arr).float(), torch.Tensor([0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1]).cuda()))
@@ -725,6 +797,7 @@ def softcap(arr, thresh=0.8, q=0.95):
     arr = torch.where(arr > thresh, thresh + (arr - thresh) * cap_ratio, arr)
     arr = torch.where(arr < -thresh, -thresh + (arr + thresh) * cap_ratio, arr)
     return arr
+
 
 def do_run():
     seed = args.seed
@@ -869,7 +942,10 @@ def do_run():
                                 print('clip/diff this frame - generate clip diff image')
                                 if warp_mode == 'use_latent':
                                     oldWarpedImg = torch.load('prevFrameScaled_lat.pt')
-                                    torch.save(oldWarpedImg, f'oldFrameScaled_lat.pt', )  # swap in for blending later
+                                    torch.save(
+                                        oldWarpedImg,
+                                        f'oldFrameScaled_lat.pt',
+                                    )  # swap in for blending later
                                 skip_steps = math.floor(steps * turbo_frame_skips_steps)
                             else:
                                 continue
@@ -881,7 +957,10 @@ def do_run():
                             print('clip/diff this frame - generate clip diff image')
                             if warp_mode == 'use_latent':
                                 oldWarpedImg = torch.load('prevFrameScaled_lat.pt')
-                                torch.save(oldWarpedImg, f'oldFrameScaled_lat.pt', )  # swap in for blending later
+                                torch.save(
+                                    oldWarpedImg,
+                                    f'oldFrameScaled_lat.pt',
+                                )  # swap in for blending later
                             # oldWarpedImg = cv2.imread('prevFrameScaled.png')
                             # cv2.imwrite(f'oldFrameScaled.png',oldWarpedImg)#swap in for blending later
                             print('clip/diff this frame - generate clip diff image')
@@ -1130,14 +1209,32 @@ def do_run():
                     init_image_alpha = Image.open(f'{videoFramesAlpha}/{frame_num + 1:06}.jpg').resize((args.side_x, args.side_y)).convert('L')
                     np_alpha = np.array(init_image_alpha) / 255.
 
-                sample, latent, depth_img = run_sd(args, init_image=init_image, skip_timesteps=skip_steps, H=args.side_y,
-                                                   W=args.side_x, text_prompt=text_prompt, neg_prompt=neg_prompt, steps=steps,
-                                                   seed=seed, init_scale=init_scale, init_latent_scale=init_latent_scale, cond_image=cond_image,
-                                                   cfg_scale=cfg_scale, image_scale=image_scale, cond_fn=None,
-                                                   init_grad_img=init_grad_img, consistency_mask=consistency_mask,
-                                                   frame_num=frame_num, deflicker_src=deflicker_src, prev_frame=prev_frame,
-                                                   rec_prompt=rec_prompt, rec_frame=rec_frame, control_inpainting_mask=control_inpainting_mask, shuffle_source=shuffle_source,
-                                                   ref_image=ref_image, alpha_mask=np_alpha)
+                sample, latent, depth_img = run_sd(args,
+                                                   init_image=init_image,
+                                                   skip_timesteps=skip_steps,
+                                                   H=args.side_y,
+                                                   W=args.side_x,
+                                                   text_prompt=text_prompt,
+                                                   neg_prompt=neg_prompt,
+                                                   steps=steps,
+                                                   seed=seed,
+                                                   init_scale=init_scale,
+                                                   init_latent_scale=init_latent_scale,
+                                                   cond_image=cond_image,
+                                                   cfg_scale=cfg_scale,
+                                                   image_scale=image_scale,
+                                                   cond_fn=None,
+                                                   init_grad_img=init_grad_img,
+                                                   consistency_mask=consistency_mask,
+                                                   frame_num=frame_num,
+                                                   deflicker_src=deflicker_src,
+                                                   prev_frame=prev_frame,
+                                                   rec_prompt=rec_prompt,
+                                                   rec_frame=rec_frame,
+                                                   control_inpainting_mask=control_inpainting_mask,
+                                                   shuffle_source=shuffle_source,
+                                                   ref_image=ref_image,
+                                                   alpha_mask=np_alpha)
 
                 settings_json = save_settings(skip_save=True)
                 settings_exif = json2exif(settings_json)
@@ -1178,8 +1275,7 @@ def do_run():
                     weights_path = f"{flo_folder}/{frame1_path.split('/')[-1]}-21_cc.jpg"
                     consistency_mask = load_cc(weights_path, blur=consistency_blur, dilate=consistency_dilate)
 
-                    consistency_mask = cv2.GaussianBlur(consistency_mask,
-                                                        (diffuse_inpaint_mask_blur, diffuse_inpaint_mask_blur), cv2.BORDER_DEFAULT)
+                    consistency_mask = cv2.GaussianBlur(consistency_mask, (diffuse_inpaint_mask_blur, diffuse_inpaint_mask_blur), cv2.BORDER_DEFAULT)
                     if diffuse_inpaint_mask_thresh < 1:
                         consistency_mask = np.where(consistency_mask < diffuse_inpaint_mask_thresh, 0, 1.)
                     # if dither:
@@ -1187,8 +1283,7 @@ def do_run():
 
                     # consistency_mask = torchvision.transforms.functional.resize(consistency_mask, image.size)
                     if warp_mode == 'use_image':
-                        consistency_mask = cv2.GaussianBlur(consistency_mask,
-                                                            (3, 3), cv2.BORDER_DEFAULT)
+                        consistency_mask = cv2.GaussianBlur(consistency_mask, (3, 3), cv2.BORDER_DEFAULT)
                         init_img_prev = Image.open(init_image)
                         if VERBOSE: print(init_img_prev.size, consistency_mask.shape, image.size)
                         cc_sz = consistency_mask.shape[1], consistency_mask.shape[0]
@@ -1224,6 +1319,7 @@ def do_run():
                     global first_latent_source
 
                     if 'frame' in normalize_latent:
+
                         def img2latent(img_path):
                             frame2 = Image.open(img_path)
                             frame2pil = frame2.convert('RGB').resize(image.size, warp_interp)
@@ -1274,9 +1370,7 @@ def do_run():
                                         pass
                                 print(f'Color matching the 1st frame.')
                             print('Colormatch source - ', first_frame_source)
-                            image = Image.fromarray(match_color_var(first_frame,
-                                                                    image, opacity=color_match_frame_str, f=colormatch_method_fn,
-                                                                    regrain=colormatch_regrain))
+                            image = Image.fromarray(match_color_var(first_frame, image, opacity=color_match_frame_str, f=colormatch_method_fn, regrain=colormatch_regrain))
 
                 if frame_num == args.start_frame:
                     settings_json = save_settings()
@@ -1312,6 +1406,7 @@ def do_run():
 
             plt.plot(np.array(loss_values), 'r')
     batchBar.close()
+
 
 def save_settings(skip_save=False):
     settings_out = batchFolder + f"/settings"
