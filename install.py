@@ -1,23 +1,20 @@
 import subprocess
 import os
-from utils.cmd import pipi, pipie, pipis, gitclone, unpip
-
+from utils.cmd import install_requirement, pipi, pipie, pipis, gitclone, unpip
 from utils.nvidia_utils import print_card
+from utils.env import root_path
 
 if __name__ == "__main__":
     print_card()
-    pipis(['tqdm','ipwidgets==7.7.1','protobuf==3.20.3'])
-
-    from tqdm.notebook import tqdm
-    progress_bar = tqdm(total= 25)
-    progress_bar.set_description("Install dependencies")
-    pipis(['mediapipe','piexif','safetensors','lark'])
+    pipis(['ipwidgets==7.7.1', 'protobuf==3.20.3'])
+    pipis(['mediapipe', 'piexif', 'safetensors', 'lark'])
     unpip('torchtext')
     gitclone('https://github.com/sxela/sxela-stablediffusion',
              dest='stablediffusion')
     gitclone('https://github.com/sxela/controlnet-v1-1-nightly',
              dest='controlnet')
     gitclone('https://github.com/pengbo-learn/python-color-transfer')
+    gitclone('https://github.com/Sxela/k-diffusion')
     try:
         if os.path.exists('./stablediffusion'):
             print('pulling a fresh stablediffusion')
@@ -34,17 +31,60 @@ if __name__ == "__main__":
         os.chdir(f'../')
     except:
         pass
-    progress_bar.update(2)
+    try:
+        if os.path.exists('./k-diffusion'):
+            print('pulling a fresh k-diffusion')
+        os.chdir(f'./k-diffusion')
+        subprocess.run(['git', 'pull'])
+        os.chdir(f'../')
+    except:
+        pass
     pipi('Pillow==9.0.0')
     pipie('./stablediffusion')
-    progress_bar.update(2)
-    pipis(['ipywidgets==7.7.1','transformers==4.19.2','omegaconf','einops','pytorch_lightning>1.4.11,<=1.7.7', 'scikit-image','opencv-python'])
-    progress_bar.update(2)
-    progress_bar.update(2)
-    progress_bar.update(2)
-    progress_bar.update(2)
-    progress_bar.update(2)
-    progress_bar.update(2)
-    progress_bar.update(2)
-    progress_bar.update(2)
-    progress_bar.update(2)
+    pipis([
+        'ipywidgets==7.7.1',
+        'transformers==4.19.2',
+        'omegaconf',
+        'einops',
+        'pytorch_lightning>1.4.11,<=1.7.7',
+        'scikit-image',
+        'opencv-python',
+        'ai-tools',
+        'cognitive-face',
+        'zprint',
+        'kornia==0.5.0',
+    ])
+    pipie(
+        'git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers'
+    )
+    pipie('git+https://github.com/openai/CLIP.git@main#egg=clip')
+    pipis([
+        'lpips',
+        'keras',
+    ])
+    import sys
+    sys.path.append('./k-diffusion')
+    pipis([
+        'wget', 'webdataset', 'open_clip_torch', 'opencv-python==4.5.5.64',
+        'pandas', 'matplotlib', 'fvcore', 'lpips', 'datetime', 'timm==0.6.13',
+        'ftfy', 'einops', 'pytorch-lightning', 'omegaconf', 'prettytable',
+        'fairscale'
+    ])
+    PROJECT_DIR = os.path.abspath(os.getcwd())
+    if not os.path.exists('guided-diffusion'):
+        gitclone("https://github.com/crowsonkb/guided-diffusion")
+    sys.path.append(f'{PROJECT_DIR}/guided-diffusion')
+    if not os.path.exists("ResizeRight"):
+        gitclone("https://github.com/assafshocher/ResizeRight.git")
+    sys.path.append(f'{PROJECT_DIR}/ResizeRight')
+    if not os.path.exists("BLIP"):
+        gitclone("https://github.com/salesforce/BLIP")
+    sys.path.append(f'{PROJECT_DIR}/BLIP')
+    os.chdir(root_path)
+    gitclone('https://github.com/xinntao/Real-ESRGAN')
+    os.chdir('Real-ESRGAN')
+    pipis(['basicsr', 'google-cloud-vision', 'ffmpeg'])
+    install_requirement()
+    res = subprocess.run(['python', 'setup.py', 'develop', '-q'],
+                         stdout=subprocess.PIPE).stdout.decode('utf-8')
+    os.chdir(root_path)

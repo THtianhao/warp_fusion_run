@@ -1,1 +1,10 @@
 venv/
+BLIP/
+Real-ESRGAN/
+ResizeRight/
+controlnet/
+guided-diffusion/
+k-diffusion/
+python-color-transfer/
+src/
+stablediffusion/
