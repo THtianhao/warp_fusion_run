@@ -27,6 +27,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 from ipywidgets import Output
+from modules.setting import side_x, side_y, skip_augs
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print('Using device:', DEVICE)
@@ -256,11 +257,11 @@ def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True)
     return out
 
 
-def regen_perlin():
-    if perlin_mode == 'color':
+def regen_perlin(prelin_mode, batch_size):
+    if prelin_mode == 'color':
         init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False)
         init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, False)
-    elif perlin_mode == 'gray':
+    elif prelin_mode == 'gray':
         init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, True)
         init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True)
     else:
@@ -391,7 +392,7 @@ padargs = {}
 
 class MakeCutoutsDango(nn.Module):
 
-    def __init__(self, cut_size, Overview=4, InnerCrop=0, IC_Size_Pow=0.5, IC_Grey_P=0.2):
+    def __init__(self, args, cut_size, Overview=4, InnerCrop=0, IC_Size_Pow=0.5, IC_Grey_P=0.2):
         super().__init__()
         self.cut_size = cut_size
         self.Overview = Overview
@@ -459,10 +460,7 @@ class MakeCutoutsDango(nn.Module):
                     cutouts.append(cutout)
 
             if cutout_debug:
-                if is_colab:
-                    TF.to_pil_image(cutouts[0].clamp(0, 1).squeeze(0)).save("/content/cutout_overview0.jpg", quality=99)
-                else:
-                    TF.to_pil_image(cutouts[0].clamp(0, 1).squeeze(0)).save("cutout_overview0.jpg", quality=99)
+                TF.to_pil_image(cutouts[0].clamp(0, 1).squeeze(0)).save("cutout_overview0.jpg", quality=99)
 
         if self.InnerCrop > 0:
             for i in range(self.InnerCrop):
@@ -475,10 +473,7 @@ class MakeCutoutsDango(nn.Module):
                 cutout = resize(cutout, out_shape=output_shape)
                 cutouts.append(cutout)
             if cutout_debug:
-                if is_colab:
-                    TF.to_pil_image(cutouts[-1].clamp(0, 1).squeeze(0)).save("/content/cutout_InnerCrop.jpg", quality=99)
-                else:
-                    TF.to_pil_image(cutouts[-1].clamp(0, 1).squeeze(0)).save("cutout_InnerCrop.jpg", quality=99)
+                TF.to_pil_image(cutouts[-1].clamp(0, 1).squeeze(0)).save("cutout_InnerCrop.jpg", quality=99)
         cutouts = torch.cat(cutouts)
         if skip_augs is not True: cutouts = self.augs(cutouts)
         return cutouts
