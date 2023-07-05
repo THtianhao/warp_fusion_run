@@ -18,35 +18,36 @@ if __name__ == "__main__":
     try:
         if os.path.exists('./stablediffusion'):
             print('pulling a fresh stablediffusion')
-        os.chdir(f'./stablediffusion')
-        subprocess.run(['git', 'pull'])
-        os.chdir(f'../')
+            os.chdir(f'./stablediffusion')
+            subprocess.run(['git', 'pull'])
+            os.chdir(f'../')
     except:
         pass
     try:
         if os.path.exists('./controlnet'):
             print('pulling a fresh controlnet')
-        os.chdir(f'./controlnet')
-        subprocess.run(['git', 'pull'])
-        os.chdir(f'../')
+            os.chdir(f'./controlnet')
+            subprocess.run(['git', 'pull'])
+            os.chdir(f'../')
     except:
         pass
+    pipie('./stablediffusion')
     try:
         if os.path.exists('./k-diffusion'):
             print('pulling a fresh k-diffusion')
-        os.chdir(f'./k-diffusion')
-        subprocess.run(['git', 'pull'])
-        os.chdir(f'../')
+            os.chdir(f'./k-diffusion')
+            subprocess.run(['git', 'pull'])
+            os.chdir(f'../')
     except:
         pass
-    pipi('Pillow==9.0.0')
-    pipie('./stablediffusion')
     pipis([
+        'Pillow==9.0.0',
         'ipywidgets==7.7.1',
         'transformers==4.19.2',
         'omegaconf',
         'einops',
-        'pytorch_lightning>1.4.11,<=1.7.7',
+        # 'pytorch_lightning>1.4.11,<=1.7.7',
+        'pytorch_lightning>1.4.11',
         'scikit-image',
         'opencv-python',
         'ai-tools',

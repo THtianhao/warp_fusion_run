@@ -1,11 +1,9 @@
 from typing import Mapping
-import torchvision.transforms.functional as TF
 
 import mediapipe as mp
 
 import numpy
 import torch
-import math
 from PIL import Image
 import cv2
 import gc
@@ -27,7 +25,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 from ipywidgets import Output
-from modules.setting import side_x, side_y, skip_augs
+from modules.settings.setting import side_x, side_y, skip_augs
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print('Using device:', DEVICE)
@@ -705,8 +703,6 @@ def do_3d_step(img_filepath, frame_num, forward_clip):
 
     return warped
 
-
-from tqdm.notebook import trange
 import copy
 
 
