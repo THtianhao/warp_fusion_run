@@ -2,7 +2,7 @@ from dataclasses import dataclass
 @dataclass
 class VideoBean:
     animation_mode = 'Video Input'
-    video_init_path = "d:/init_images/Snapinsta.app_video_314B712AC1DB9308A6E8D7CCFB65EF8C_video_dashinit.mp4"
+    video_init_path = ""
     extract_nth_frame = 1  # @param {type: 'number'}
     # *Specify frame range. end_frame=0 means fill the end of video*
     start_frame = 0  # @param {type: 'number'}
