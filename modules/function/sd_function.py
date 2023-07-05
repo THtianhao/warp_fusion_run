@@ -2,7 +2,6 @@
 init_latent = None
 target_embed = None
 
-import hashlib
 import os
 
 # import datetime
@@ -10,20 +9,6 @@ import os
 # (c) Alex Spirin 2023
 # We use input file hashes to automate video extraction
 #
-def generate_file_hash(input_file):
-    # Get file name and metadata
-    file_name = os.path.basename(input_file)
-    file_size = os.path.getsize(input_file)
-    creation_time = os.path.getctime(input_file)
-
-    # Generate hash
-    hasher = hashlib.sha256()
-    hasher.update(file_name.encode('utf-8'))
-    hasher.update(str(file_size).encode('utf-8'))
-    hasher.update(str(creation_time).encode('utf-8'))
-    file_hash = hasher.hexdigest()
-
-    return file_hash
 
 def get_frame_from_path_start_end_nth(video_path: str, num_frame: int, start: int = 0, end: int = 0, nth: int = 1) -> Image:
     assert os.path.exists(video_path), f"Video path or frame folder not found at {video_path}. Please specify the correct path."

@@ -1,11 +1,160 @@
 # @title Generate optical flow and consistency maps
 # @markdown Run once per init video and width_height setting.
 # if you're running locally, just restart this runtime, no need to edit PIL files.
+import math
+import cv2
+import numpy as np
+import locale
+import gc
+from torch.utils.data import DataLoader
+from multiprocessing.pool import ThreadPool as Pool
+
 flow_warp = True
 check_consistency = True
-force_flow_generation = False  # @param {type:'boolean'}
+force_flow_generation = False
+use_legacy_cc = False
+threads = 4
+#  If you're having "process died" error on Windows, set num_workers to 0
+num_workers = 0
+#  Use lower quality model (half-precision).\
+#  Uses half the vram, allows fitting 1500x1500+ frames into 16gigs, which the original full-precision RAFT can't do.
+flow_lq = True
+#  Save human-readable flow images along with motion vectors. Check /{your output dir}/videoFrames/out_flo_fwd folder.
+flow_save_img_preview = False
 
-use_legacy_cc = False  # @param{'type':'boolean'}
+def run_optical_flow():
+    in_path = videoFramesFolder if not flow_video_init_path else flowVideoFramesFolder
+    flo_fwd_folder = flo_folder = in_path + f'_out_flo_fwd/{side_x}_{side_y}/'
+    print(flo_folder)
+    # #@markdown reverse_cc_order - on - default value (like in older notebooks). off - reverses consistency computation
+    reverse_cc_order = True  #
+    # #@param {type:'boolean'}
+    if not flow_warp: print('flow_wapr not set, skipping')
+    try:
+        raft_model
+    except:
+        raft_model = None
+    # @markdown Use previous pre-compile raft version (won't work with pytorch 2.0)
+    use_jit_raft = False  # @param {'type':'boolean'}
+    # @markdown Compile raft model (only with use_raft_jit = False). Compiles the model (~about 2 minutes) for ~30% speedup. Use for very long runs.
+    compile_raft = False  # @param {'type':'boolean'}
+    # @markdown Flow estimation quality (number of iterations, 12 - default. higher - better and slower)
+    num_flow_updates = 12  # @param {'type':'number'}
+    # \@markdown Unreliable areas mask (missed consistency) width
+    # \@markdown Default = 1
+    missed_consistency_dilation = 2  # \ @param {'type':'number'}
+    # \@markdown Motion edge areas (edge consistency) width
+    # \@markdown Default = 11
+    edge_consistency_width = 11  # \@param {'type':'number'}
+    if (animation_mode == 'Video Input') and (flow_warp):
+        flows = glob(flo_folder + '/*.*')
+        if (len(flows) > 0) and not force_flow_generation: print(
+            f'Skipping flow generation:\nFound {len(flows)} existing flow files in current working folder: {flo_folder}.\nIf you wish to generate new flow files, check force_flow_generation and run this cell again.')
+
+        if (len(flows) == 0) or force_flow_generation:
+            ds = flowDataset(in_path, normalize=not use_jit_raft)
+
+            frames = sorted(glob(in_path + '/*.*'));
+            if len(frames) < 2:
+                print(f'WARNING!\nCannot create flow maps: Found {len(frames)} frames extracted from your video input.\nPlease check your video path.')
+            if len(frames) >= 2:
+                if __name__ == '__main__':
+
+                    dl = DataLoader(ds, num_workers=num_workers)
+                    if use_jit_raft:
+                        if flow_lq:
+                            raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_half.jit').eval()
+                        # raft_model = torch.nn.DataParallel(RAFT(args2))
+                        else:
+                            raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_fp32.jit').eval()
+                        # raft_model.load_state_dict(torch.load(f'{root_path}/RAFT/models/raft-things.pth'))
+                        # raft_model = raft_model.module.cuda().eval()
+                    else:
+                        if raft_model is None or not compile_raft:
+                            from torchvision.models.optical_flow import Raft_Large_Weights, Raft_Small_Weights
+                            from torchvision.models.optical_flow import raft_large, raft_small
+
+                            raft_weights = Raft_Large_Weights.C_T_SKHT_V1
+                            raft_device = "cuda" if torch.cuda.is_available() else "cpu"
+
+                            raft_model = raft_large(weights=raft_weights, progress=False).to(raft_device)
+                            # raft_model = raft_small(weights=Raft_Small_Weights.DEFAULT, progress=False).to(raft_device)
+                            raft_model = raft_model.eval()
+                            if gpu != 'T4' and compile_raft: raft_model = torch.compile(raft_model)
+                            if flow_lq:
+                                raft_model = raft_model.half()
+
+                    temp_flo = in_path + '_temp_flo'
+                    # flo_fwd_folder = in_path+'_out_flo_fwd'
+                    flo_fwd_folder = in_path + f'_out_flo_fwd/{side_x}_{side_y}/'
+                    for f in pathlib.Path(f'{flo_fwd_folder}').glob('*.*'):
+                        f.unlink()
+
+                    os.makedirs(flo_fwd_folder, exist_ok=True)
+                    os.makedirs(temp_flo, exist_ok=True)
+                    cc_path = f'{root_dir}/flow_tools/check_consistency.py'
+                    with torch.no_grad():
+                        p = Pool(threads)
+                        for i, batch in enumerate(tqdm(dl)):
+                            flow_batch(i, batch, p)
+                        p.close()
+                        p.join()
+
+                    del raft_model, p, dl, ds
+                    gc.collect()
+                    if is_colab: locale.getpreferredencoding = getpreferredencoding
+                    if check_consistency and use_legacy_cc:
+                        fwd = f"{flo_fwd_folder}/*jpg.npy"
+                        bwd = f"{flo_fwd_folder}/*jpg_12.npy"
+
+                        if reverse_cc_order:
+                            # old version, may be incorrect
+                            print('Doing bwd->fwd cc check')
+                            !python
+                            "{cc_path}" - -flow_fwd
+                            "{fwd}" - -flow_bwd
+                            "{bwd}" - -output
+                            "{flo_fwd_folder}/" - -image_output - -output_postfix = "-21_cc" - -blur = 0. - -save_separate_channels - -skip_numpy_output
+                        else:
+                            print('Doing fwd->bwd cc check')
+                            !python
+                            "{cc_path}" - -flow_fwd
+                            "{bwd}" - -flow_bwd
+                            "{fwd}" - -output
+                            "{flo_fwd_folder}/" - -image_output - -output_postfix = "-21_cc" - -blur = 0. - -save_separate_channels - -skip_numpy_output
+                        # delete forward flow
+                        # for f in pathlib.Path(flo_fwd_folder).glob('*jpg_12.npy'):
+                        #   f.unlink()
+
+    flo_imgs = glob(flo_fwd_folder + '/*.jpg.jpg')[:5]
+    vframes = []
+    for flo_img in flo_imgs:
+        hframes = []
+        flo_img = flo_img.replace('\\', '/')
+        frame = Image.open(videoFramesFolder + '/' + flo_img.split('/')[-1][:-4])
+        hframes.append(frame)
+        try:
+            alpha = Image.open(videoFramesAlpha + '/' + flo_img.split('/')[-1][:-4]).resize(frame.size)
+            hframes.append(alpha)
+        except:
+            pass
+        try:
+            cc_img = Image.open(flo_img[:-4] + '-21_cc.jpg').convert('L').resize(frame.size)
+            hframes.append(cc_img)
+        except:
+            pass
+        try:
+            flo_img = Image.open(flo_img).resize(frame.size)
+            hframes.append(flo_img)
+        except:
+            pass
+        v_imgs = vstack(hframes)
+        vframes.append(v_imgs)
+    preview = hstack(vframes)
+    del vframes, hframes
+    fit(preview, 1024)
+
+
 
 def hstack(images):
     if isinstance(images[0], str):
@@ -25,12 +174,9 @@ def hstack(images):
         x_offset += im.size[0]
     return new_im
 
-import locale
 
 def getpreferredencoding(do_setlocale=True):
     return "UTF-8"
-
-if is_colab: locale.getpreferredencoding = getpreferredencoding
 
 def vstack(images):
     if isinstance(next(iter(images)), str):
@@ -47,21 +193,6 @@ def vstack(images):
         new_im.paste(im, (0, y_offset))
         y_offset += im.size[1]
     return new_im
-
-if is_colab:
-    for i in [7, 8, 9, 10]:
-        try:
-            filedata = None
-            with open(f'/usr/local/lib/python3.{i}/dist-packages/PIL/TiffImagePlugin.py', 'r') as file:
-                filedata = file.read()
-            filedata = filedata.replace('(TiffTags.IFD, "L", "long"),', '#(TiffTags.IFD, "L", "long"),')
-            with open(f'/usr/local/lib/python3.{i}/dist-packages/PIL/TiffImagePlugin.py', 'w') as file:
-                file.write(filedata)
-            with open(f'/usr/local/lib/python3.7/dist-packages/PIL/TiffImagePlugin.py', 'w') as file:
-                file.write(filedata)
-        except:
-            pass
-            # print(f'Error writing /usr/local/lib/python3.{i}/dist-packages/PIL/TiffImagePlugin.py')
 
 class flowDataset():
     def __init__(self, in_path, half=True, normalize=False):
@@ -87,7 +218,6 @@ class flowDataset():
             batch = 2 * (batch / 255.0) - 1.0
         return batch
 
-from torch.utils.data import DataLoader
 
 def save_preview(flow21, out_flow21_fn):
     try:
@@ -125,7 +255,6 @@ def move_cluster(img, i, res2, center, mode='blended_roll'):
         img_copy = np.roll(img_copy, int(y), axis=1)
     return img_copy, mask
 
-import cv2
 
 def get_k(flow, K):
     Z = flow.reshape((-1, 2))
@@ -195,146 +324,3 @@ def flow_batch(i, batch, pool):
                 # print(cc_path)
                 joint_mask.save(cc_path)
                 # pool.apply_async(joint_mask.save, cc_path)
-
-from multiprocessing.pool import ThreadPool as Pool
-import gc
-
-threads = 4  # @param {'type':'number'}
-# @markdown If you're having "process died" error on Windows, set num_workers to 0
-num_workers = 0  # @param {'type':'number'}
-
-# @markdown Use lower quality model (half-precision).\
-# @markdown Uses half the vram, allows fitting 1500x1500+ frames into 16gigs, which the original full-precision RAFT can't do.
-flow_lq = True  # @param {type:'boolean'}
-# @markdown Save human-readable flow images along with motion vectors. Check /{your output dir}/videoFrames/out_flo_fwd folder.
-flow_save_img_preview = False  # @param {type:'boolean'}
-in_path = videoFramesFolder if not flow_video_init_path else flowVideoFramesFolder
-flo_fwd_folder = flo_folder = in_path + f'_out_flo_fwd/{side_x}_{side_y}/'
-print(flo_folder)
-# #@markdown reverse_cc_order - on - default value (like in older notebooks). off - reverses consistency computation
-reverse_cc_order = True  #
-# #@param {type:'boolean'}
-if not flow_warp: print('flow_wapr not set, skipping')
-try:
-    raft_model
-except:
-    raft_model = None
-# @markdown Use previous pre-compile raft version (won't work with pytorch 2.0)
-use_jit_raft = False  # @param {'type':'boolean'}
-# @markdown Compile raft model (only with use_raft_jit = False). Compiles the model (~about 2 minutes) for ~30% speedup. Use for very long runs.
-compile_raft = False  # @param {'type':'boolean'}
-# @markdown Flow estimation quality (number of iterations, 12 - default. higher - better and slower)
-num_flow_updates = 12  # @param {'type':'number'}
-# \@markdown Unreliable areas mask (missed consistency) width
-# \@markdown Default = 1
-missed_consistency_dilation = 2  # \ @param {'type':'number'}
-# \@markdown Motion edge areas (edge consistency) width
-# \@markdown Default = 11
-edge_consistency_width = 11  # \@param {'type':'number'}
-if (animation_mode == 'Video Input') and (flow_warp):
-    flows = glob(flo_folder + '/*.*')
-    if (len(flows) > 0) and not force_flow_generation: print(
-        f'Skipping flow generation:\nFound {len(flows)} existing flow files in current working folder: {flo_folder}.\nIf you wish to generate new flow files, check force_flow_generation and run this cell again.')
-
-    if (len(flows) == 0) or force_flow_generation:
-        ds = flowDataset(in_path, normalize=not use_jit_raft)
-
-        frames = sorted(glob(in_path + '/*.*'));
-        if len(frames) < 2:
-            print(f'WARNING!\nCannot create flow maps: Found {len(frames)} frames extracted from your video input.\nPlease check your video path.')
-        if len(frames) >= 2:
-            if __name__ == '__main__':
-
-                dl = DataLoader(ds, num_workers=num_workers)
-                if use_jit_raft:
-                    if flow_lq:
-                        raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_half.jit').eval()
-                    # raft_model = torch.nn.DataParallel(RAFT(args2))
-                    else:
-                        raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_fp32.jit').eval()
-                    # raft_model.load_state_dict(torch.load(f'{root_path}/RAFT/models/raft-things.pth'))
-                    # raft_model = raft_model.module.cuda().eval()
-                else:
-                    if raft_model is None or not compile_raft:
-                        from torchvision.models.optical_flow import Raft_Large_Weights, Raft_Small_Weights
-                        from torchvision.models.optical_flow import raft_large, raft_small
-
-                        raft_weights = Raft_Large_Weights.C_T_SKHT_V1
-                        raft_device = "cuda" if torch.cuda.is_available() else "cpu"
-
-                        raft_model = raft_large(weights=raft_weights, progress=False).to(raft_device)
-                        # raft_model = raft_small(weights=Raft_Small_Weights.DEFAULT, progress=False).to(raft_device)
-                        raft_model = raft_model.eval()
-                        if gpu != 'T4' and compile_raft: raft_model = torch.compile(raft_model)
-                        if flow_lq:
-                            raft_model = raft_model.half()
-
-                temp_flo = in_path + '_temp_flo'
-                # flo_fwd_folder = in_path+'_out_flo_fwd'
-                flo_fwd_folder = in_path + f'_out_flo_fwd/{side_x}_{side_y}/'
-                for f in pathlib.Path(f'{flo_fwd_folder}').glob('*.*'):
-                    f.unlink()
-
-                os.makedirs(flo_fwd_folder, exist_ok=True)
-                os.makedirs(temp_flo, exist_ok=True)
-                cc_path = f'{root_dir}/flow_tools/check_consistency.py'
-                with torch.no_grad():
-                    p = Pool(threads)
-                    for i, batch in enumerate(tqdm(dl)):
-                        flow_batch(i, batch, p)
-                    p.close()
-                    p.join()
-
-                del raft_model, p, dl, ds
-                gc.collect()
-                if is_colab: locale.getpreferredencoding = getpreferredencoding
-                if check_consistency and use_legacy_cc:
-                    fwd = f"{flo_fwd_folder}/*jpg.npy"
-                    bwd = f"{flo_fwd_folder}/*jpg_12.npy"
-
-                    if reverse_cc_order:
-                        # old version, may be incorrect
-                        print('Doing bwd->fwd cc check')
-                        !python
-                        "{cc_path}" - -flow_fwd
-                        "{fwd}" - -flow_bwd
-                        "{bwd}" - -output
-                        "{flo_fwd_folder}/" - -image_output - -output_postfix = "-21_cc" - -blur = 0. - -save_separate_channels - -skip_numpy_output
-                    else:
-                        print('Doing fwd->bwd cc check')
-                        !python
-                        "{cc_path}" - -flow_fwd
-                        "{bwd}" - -flow_bwd
-                        "{fwd}" - -output
-                        "{flo_fwd_folder}/" - -image_output - -output_postfix = "-21_cc" - -blur = 0. - -save_separate_channels - -skip_numpy_output
-                    # delete forward flow
-                    # for f in pathlib.Path(flo_fwd_folder).glob('*jpg_12.npy'):
-                    #   f.unlink()
-
-flo_imgs = glob(flo_fwd_folder + '/*.jpg.jpg')[:5]
-vframes = []
-for flo_img in flo_imgs:
-    hframes = []
-    flo_img = flo_img.replace('\\', '/')
-    frame = Image.open(videoFramesFolder + '/' + flo_img.split('/')[-1][:-4])
-    hframes.append(frame)
-    try:
-        alpha = Image.open(videoFramesAlpha + '/' + flo_img.split('/')[-1][:-4]).resize(frame.size)
-        hframes.append(alpha)
-    except:
-        pass
-    try:
-        cc_img = Image.open(flo_img[:-4] + '-21_cc.jpg').convert('L').resize(frame.size)
-        hframes.append(cc_img)
-    except:
-        pass
-    try:
-        flo_img = Image.open(flo_img).resize(frame.size)
-        hframes.append(flo_img)
-    except:
-        pass
-    v_imgs = vstack(hframes)
-    vframes.append(v_imgs)
-preview = hstack(vframes)
-del vframes, hframes
-fit(preview, 1024)
