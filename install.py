@@ -1,8 +1,8 @@
 import subprocess
 import os
-from modules.utils.cmd import install_requirement, pipi, pipie, pipis, gitclone, unpip
-from modules.utils.nvidia_utils import print_card
-from modules.utils.env import root_path
+from scripts.utils.cmd import install_requirement, pipi, pipie, pipis, gitclone, unpip
+from scripts.utils.nvidia_utils import print_card
+from scripts.utils.env import root_path
 
 if __name__ == "__main__":
     print_card()
@@ -55,9 +55,7 @@ if __name__ == "__main__":
         'zprint',
         'kornia==0.5.0',
     ])
-    pipie(
-        'git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers'
-    )
+    pipie('git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers')
     pipie('git+https://github.com/openai/CLIP.git@main#egg=clip')
     pipis([
         'lpips',
@@ -85,7 +83,10 @@ if __name__ == "__main__":
     gitclone('https://github.com/xinntao/Real-ESRGAN')
     os.chdir('Real-ESRGAN')
     pipis(['basicsr', 'google-cloud-vision', 'ffmpeg'])
+    print("install requirement")
     install_requirement()
-    res = subprocess.run(['python', 'setup.py', 'develop', '-q'],
+    print('run setup.py')
+    res = subprocess.run(['python', 'setup.py', 'develop'],
                          stdout=subprocess.PIPE).stdout.decode('utf-8')
     os.chdir(root_path)
+    print("Done")

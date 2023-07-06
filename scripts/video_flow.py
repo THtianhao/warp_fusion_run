@@ -1,21 +1,31 @@
-from modules.bean.video_bean import VideoBean
-from modules.utils.cmd import gitclone
-import subprocess
 import sys
-import hashlib
-import pathlib
+
+import numpy as np
+from PIL.ImageDraw import ImageDraw
+from safetensors import torch
+
+from scripts.bean.video_bean import VideoConfigBean
+from scripts.utils.cmd import gitclone, gitpull
+import subprocess
 from PIL.Image import Image
-from glob import glob
-from modules.settings.setting import batchFolder
-from modules.utils.env import root_dir
-from modules.utils.path import createPath
+from scripts.settings.setting import batchFolder, width_height
+from scripts.utils.env import root_dir, root_path
+from scripts.utils.ffmpeg_utils import generate_file_hash, extractFrames
+from scripts.utils.path import createPath
 import os, platform
+import shutil
+from glob import glob
 
 if platform.system() != 'Linux' and not os.path.exists("ffmpeg.exe"):
     print("Warning! ffmpeg.exe not found. Please download ffmpeg and place it in current working dir.")
-def video_setting(bean: VideoBean):
-    flow_postfix = ''
+
+def extra_video_frame(bean: VideoConfigBean):
     if bean.animation_mode == 'Video Input':
+        in_path = bean.videoFramesFolder if not bean.flow_video_init_path else bean.flowVideoFramesFolder
+        bean.flo_folder = in_path + '_out_flo_fwd'
+        bean.temp_flo = in_path + '_temp_flo'
+        bean.flo_fwd_folder = in_path + '_out_flo_fwd'
+        bean.flo_bck_folder = in_path + '_out_flo_bck'
         postfix = f'{generate_file_hash(bean.video_init_path)[:10]}_{bean.start_frame}_{bean.end_frame_orig}_{bean.extract_nth_frame}'
         if bean.flow_video_init_path:
             flow_postfix = f'{generate_file_hash(bean.flow_video_init_path)[:10]}_{bean.flow_extract_nth_frame}'
@@ -55,7 +65,7 @@ def video_setting(bean: VideoBean):
                 print(bean.color_video_path, bean.colorVideoFramesFolder, bean.color_extract_nth_frame)
                 extractFrames(bean.color_video_path, bean.colorVideoFramesFolder, bean.color_extract_nth_frame, bean.start_frame, bean.end_frame)
 
-def mask_video(bean: VideoBean):
+def mask_video(bean: VideoConfigBean):
     # Generate background mask from your init video or use a video as a mask
     mask_source = 'init_video'  # @param ['init_video','mask_video']
     # Check to rotoscope the video and create a mask from it. If unchecked, the raw monochrome video will be used as a mask.
@@ -90,54 +100,38 @@ def mask_video(bean: VideoBean):
             extractFrames(mask_video_path, f"{videoFramesAlpha}", bean.extract_nth_frame, bean.start_frame, bean.end_frame)
             # extract video
 
-def extractFrames(video_path, output_path, nth_frame, start_frame, end_frame):
-    createPath(output_path)
-    print(f"Exporting Video Frames (1 every {nth_frame})...")
-    try:
-        for f in [o.replace('\\', '/') for o in glob(output_path + '/*.jpg')]:
-            # for f in pathlib.Path(f'{output_path}').glob('*.jpg'):
-            pathlib.Path(f).unlink()
-    except:
-        print('error deleting frame ', f)
-    # vf = f'select=not(mod(n\\,{nth_frame}))'
-    vf = f'select=between(n\\,{start_frame}\\,{end_frame}) , select=not(mod(n\\,{nth_frame}))'
-    if os.path.exists(video_path):
+def download_reference_repository(animation_mode, force: bool = False):
+    if (os.path.exists(f'{root_dir}/raft')) and force:
         try:
-            subprocess.run(['ffmpeg', '-i', f'{video_path}', '-vf', f'{vf}', '-vsync', 'vfr', '-q:v', '2', '-loglevel', 'error', '-stats', f'{output_path}/%06d.jpg'],
-                           stdout=subprocess.PIPE).stdout.decode('utf-8')
+            shutil.rmtree(f'{root_dir}/raft')
         except:
-            subprocess.run(['ffmpeg.exe', '-i', f'{video_path}', '-vf', f'{vf}', '-vsync', 'vfr', '-q:v', '2', '-loglevel', 'error', '-stats', f'{output_path}/%06d.jpg'],
-                           stdout=subprocess.PIPE).stdout.decode('utf-8')
-
+            print('error deleting existing RAFT model')
+    if (not (os.path.exists(f'{root_dir}/raft'))) or force:
+        os.chdir(root_dir)
+        gitclone('https://github.com/Sxela/WarpFusion')
     else:
-        sys.exit(f'\nERROR!\n\nVideo not found: {video_path}.\nPlease check your video path.\n')
+        os.chdir(root_dir)
+        os.chdir('WarpFusion')
+        gitpull()
+        os.chdir(root_dir)
 
-def generate_file_hash(input_file):
-    # Get file name and metadata
-    file_name = os.path.basename(input_file)
-    file_size = os.path.getsize(input_file)
-    creation_time = os.path.getctime(input_file)
+    try:
+        from python_color_transfer.color_transfer import ColorTransfer, Regrain
+    except:
+        os.chdir(root_dir)
+        gitclone('https://github.com/pengbo-learn/python-color-transfer')
 
-    # Generate hash
-    hasher = hashlib.sha256()
-    hasher.update(file_name.encode('utf-8'))
-    hasher.update(str(file_size).encode('utf-8'))
-    hasher.update(str(creation_time).encode('utf-8'))
-    file_hash = hasher.hexdigest()
+    os.chdir(root_dir)
+    sys.path.append('./python-color-transfer')
 
-    return file_hash
+    if animation_mode == 'Video Input':
+        os.chdir(root_dir)
+        gitclone('https://github.com/Sxela/flow_tools')
 
-def generate_file_hash(input_file):
-    # Get file name and metadata
-    file_name = os.path.basename(input_file)
-    file_size = os.path.getsize(input_file)
-    creation_time = os.path.getctime(input_file)
+    # @title Define color matching and brightness adjustment
+    os.chdir(f"{root_dir}/python-color-transfer")
+    from python_color_transfer.color_transfer import ColorTransfer, Regrain
+    os.chdir(root_path)
 
-    # Generate hash
-    hasher = hashlib.sha256()
-    hasher.update(file_name.encode('utf-8'))
-    hasher.update(str(file_size).encode('utf-8'))
-    hasher.update(str(creation_time).encode('utf-8'))
-    file_hash = hasher.hexdigest()
-
-    return file_hash
+    PT = ColorTransfer()
+    RG = Regrain()

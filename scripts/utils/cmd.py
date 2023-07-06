@@ -1,6 +1,5 @@
 import subprocess
 
-
 def gitclone(url, recursive=False, dest=None):
     command = ['git', 'clone', url]
     if dest: command.append(dest)
@@ -9,31 +8,30 @@ def gitclone(url, recursive=False, dest=None):
                          stdout=subprocess.PIPE).stdout.decode('utf-8')
     print(res)
 
+def gitpull():
+    res = subprocess.run('git pull', stdout=subprocess.PIPE).stdout.decode('utf-8')
+    print(res)
 
 def pipi(modulestr):
     res = subprocess.run(['python', '-m', 'pip', '-q', 'install', modulestr],
                          stdout=subprocess.PIPE).stdout.decode('utf-8')
     print(res)
 
-
 def unpip(modulestr):
     res = subprocess.run(['python', '-m', 'pip', '-q', 'uninstall', modulestr],
                          stdout=subprocess.PIPE).stdout.decode('utf-8')
     print(res)
-
 
 def pipie(modulestr):
     res = subprocess.run(['python', '-m', 'pip', 'install', '-e', modulestr],
                          stdout=subprocess.PIPE).stdout.decode('utf-8')
     print(res)
 
-
 def install_requirement():
     res = subprocess.run(
         ['python', '-m', 'pip', 'install', '-r', 'requirements.txt'],
         stdout=subprocess.PIPE).stdout.decode('utf-8')
     print(res)
-
 
 def pipis(modulestrs: list):
     pip_cmd = ['python', '-m', 'pip', 'install']
@@ -42,18 +40,15 @@ def pipis(modulestrs: list):
                          stdout=subprocess.PIPE).stdout.decode('utf-8')
     print(res)
 
-
 def gite(modulestr):
     res = subprocess.run(['git', 'install', '-e', modulestr],
                          stdout=subprocess.PIPE).stdout.decode('utf-8')
     print(res)
 
-
 def wget_p(url, outputdir):
     res = subprocess.run(['wget', url, '-P', f'{outputdir}'],
                          stdout=subprocess.PIPE).stdout.decode('utf-8')
     print(res)
-
 
 def get_version(package):
     proc = subprocess.run(['pip', 'show', package], stdout=subprocess.PIPE)

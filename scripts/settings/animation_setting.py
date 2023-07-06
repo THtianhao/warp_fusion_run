@@ -5,8 +5,8 @@
 #@markdown You'll need to manually input the resulting video path into the next cell.
 import subprocess
 
-from modules.settings.setting import side_x, side_y
-from modules.utils.env import root_dir
+from scripts.settings.setting import side_x, side_y
+from scripts.utils.env import root_dir
 
 use_looped_init_image = False #@param {'type':'boolean'}
 video_duration_sec = 2 #@param {'type':'number'}

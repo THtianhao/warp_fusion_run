@@ -25,8 +25,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 from ipywidgets import Output
-from modules.settings.setting import side_x, side_y, skip_augs
-from modules.settings.main_settings import *
+from scripts.settings.setting import side_x, side_y, skip_augs
+from scripts.settings.main_settings import *
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print('Using device:', DEVICE)

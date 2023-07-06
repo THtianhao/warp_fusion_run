@@ -1,5 +1,5 @@
-from modules.utils.path import createPath
-from modules.utils.env import outDirPath
+from scripts.utils.path import createPath
+from scripts.utils.env import outDirPath
 
 batch_name = 'stable_warpfusion_0.15.0'  #@param{type: 'string'}
 steps = 50
@@ -45,3 +45,13 @@ diffusion_steps = (1000 // steps) * steps if steps < 1000 else steps
 #Make folder for batch
 batchFolder = f'{outDirPath}/{batch_name}'
 createPath(batchFolder)
+
+try:
+    import Image
+except:
+    from PIL import Image
+
+mask_result = False
+early_stop = 0
+inpainting_stop = 0
+warp_interp = Image.BILINEAR

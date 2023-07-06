@@ -1,6 +1,7 @@
 from dataclasses import dataclass
+
 @dataclass
-class VideoBean:
+class VideoConfigBean:
     animation_mode = 'Video Input'
     video_init_path = ""
     extract_nth_frame = 1  # @param {type: 'number'}
@@ -32,3 +33,8 @@ class VideoBean:
     store_frames_on_google_drive = False  # @param {type: 'boolean'}
     video_init_seed_continuity = False
     videoFramesFolder = ''
+    flowVideoFramesFolder = ''
+    flo_folder = ''
+    temp_flo = ''
+    flo_fwd_folder = ''
+    flo_bck_folder = ''

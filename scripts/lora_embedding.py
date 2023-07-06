@@ -47,7 +47,7 @@ def read_metadata_from_safetensors(filename):
         return res
 
 weight_load_location = 'cpu'
-from modules import devices, shared
+from scripts import devices, shared
 
 lora_dir = '/content/drive/MyDrive/models/loras' #@param {'type':'string'}
 if not is_colab and lora_dir.startswith('/content'):
