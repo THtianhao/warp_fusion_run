@@ -2,6 +2,10 @@
 #@markdown Allows automated settings scheduling based on video frames difference. If a scene changes, it will be detected and reflected in the schedule.\
 #@markdown rmse function is faster than lpips, but less precise.\
 #@markdown After the analysis is done, check the graph and pick a threshold that works best for your video. 0.5 is a good one for lpips, 1.2 is a good one for rmse. Don't forget to adjust the templates with new threshold in the cell below.
+import torch
+from PIL import Image
+
+from scripts.function.sd_function import normalize
 
 def load_img_lpips(path, size=(512,512)):
     image = Image.open(path).convert("RGB")

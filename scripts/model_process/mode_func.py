@@ -1,10 +1,11 @@
 import os
+import pickle
 import sys
 from torch.nn import functional as F
 from guided_diffusion.nn import timestep_embedding
 from resize_right import resize
 from PIL import Image
-from scripts.utils.env import root_dir
+from scripts.utils.env import root_dir, model_path
 from scripts.video_process.color_transfor_func import writeFlow
 import numpy as np
 
@@ -166,3 +167,19 @@ def cldm_forward(x, timesteps=None, context=None, control=None, only_mid_control
 
     h = h.type(x.dtype)
     return self.out(h)
+
+def save_loaded_mode(save_model_pickle, save_folder, sd_model):
+    # @title Save loaded model
+    # @markdown For this cell to work you need to load model in the previous cell.\
+    # @markdown Saves an already loaded model as an object file, that weights less, loads faster, and requires less CPU RAM.\
+    # @markdown After saving model as pickle, you can then load it as your usual stable diffusion model in thecell above.\
+    # @markdown The model will be saved under the same name with .pkl extenstion.
+
+    # save_model_pickle = False  # @param {'type':'boolean'}
+    # save_folder = "/content/drive/MyDrive/models"  # @param {'type':'string'}
+    if save_folder != '' and save_model_pickle:
+        os.makedirs(save_folder, exist_ok=True)
+        out_path = save_folder + model_path.replace('\\', '/').split('/')[-1].split('.')[0] + '.pkl'
+        with open(out_path, 'wb') as f:
+            pickle.dump(sd_model, f)
+        print('Model successfully saved as: ', out_path)
