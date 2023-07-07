@@ -1,4 +1,4 @@
-from scripts.bean.video_config_bean import VideoConfigBean
+from scripts.video_process.video_config import VideoConfig
 from scripts.captioning_process.captioning_config import CaptioningConfig
 from scripts.captioning_process.generate_key_frame import generate_key_frame
 from scripts.clip_process.clip_config import ClipConfig
@@ -9,11 +9,11 @@ from scripts.model_process.load_sd_k_model import load_sd_and_k_fusion
 from scripts.model_process.model_config import ModelConfig
 from scripts.tiled_vae_process.tiled_vae import tiled_vae
 from scripts.tiled_vae_process.tiled_vae_config import TiledVaeConfig
-from scripts.video_flow import extra_video_frame, mask_video, download_reference_repository
+from scripts.video_process.video_flow import extra_video_frame, mask_video, download_reference_repository
 from scripts.video_process.generate_optical_func import generate_optical_flow
 
 if __name__ == "__main__":
-    video_config = VideoConfigBean()
+    video_config = VideoConfig()
     video_config.video_init_path = "./res/dance.mp4"
     # bean.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
     extra_video_frame(video_config)

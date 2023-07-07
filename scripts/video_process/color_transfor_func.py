@@ -4,15 +4,14 @@
 import math
 import os
 
-from scripts.settings.main_settings import warp_mode, match_color_strength, consistency_blur, consistency_dilate, use_patchmatch_inpaiting, missed_consistency_weight, overshoot_consistency_weight, \
-    edges_consistency_weight
+from scripts.settings.no_gui_config import consistency_blur, warp_mode, match_color_strength, missed_consistency_weight, overshoot_consistency_weight, edges_consistency_weight, consistency_dilate, \
+    use_patchmatch_inpaiting
 from scripts.settings.setting import warp_interp
 from scripts.utils.env import root_dir, root_path
 from scripts.video_process.Input_padder import InputPadder
 
 force_download = False  # \@param {type:'boolean'}
 # import wget
-import zipfile, shutil
 
 # @title Define color matching and brightness adjustment
 os.chdir(f"{root_dir}/python-color-transfer")
@@ -107,8 +106,6 @@ DEBUG = False
 #
 # Author: Tom Runia
 # Date Created: 2018-08-03
-
-import numpy as np
 
 def make_colorwheel():
     """
@@ -217,10 +214,6 @@ def flow_to_image(flow_uv, clip_flow=None, convert_to_bgr=False):
     v = v / (rad_max + epsilon)
     return flow_uv_to_colors(u, v, convert_to_bgr)
 
-from torch import Tensor
-
-import cv2
-
 def extract_occlusion_mask(flow, threshold=10):
     flow = flow.clone()[0].permute(1, 2, 0).detach().cpu().numpy()
     h, w = flow.shape[:2]
@@ -242,9 +235,6 @@ def extract_occlusion_mask(flow, threshold=10):
     occlusion_mask = (mag > threshold).astype(np.uint8)
 
     return occlusion_mask, mag
-
-import cv2
-import numpy as np
 
 def edge_detector(image, threshold=0.5, edge_width=1):
     """
@@ -299,9 +289,7 @@ def get_unreliable(flow):
     return new_frame, mask
 
 from scipy.ndimage import binary_fill_holes
-from skimage.morphology import disk, binary_erosion, binary_dilation, binary_opening, binary_closing
-
-import cv2
+from skimage.morphology import disk, binary_erosion, binary_dilation
 
 def remove_small_holes(mask, min_size=50):
     # Copy the input binary mask
@@ -341,7 +329,7 @@ def make_cc_map(predicted_flows, predicted_flows_bwd, dilation=1, edge_width=11)
     return joint_mask
 
 import numpy as np
-import argparse, PIL, cv2
+import argparse, PIL
 from PIL import Image
 import torch
 import scipy.ndimage
@@ -593,8 +581,6 @@ def hstack(images):
         x_offset += im.size[0]
     return new_im
 
-import locale
-
 def getpreferredencoding(do_setlocale=True):
     return "UTF-8"
 
@@ -613,8 +599,6 @@ def vstack(images):
         new_im.paste(im, (0, y_offset))
         y_offset += im.size[1]
     return new_im
-
-from torch.utils.data import DataLoader
 
 def save_preview(flow21, out_flow21_fn):
     try:

@@ -4,7 +4,6 @@ import numpy as np
 from PIL.ImageDraw import ImageDraw
 from safetensors import torch
 
-from scripts.bean.video_bean import VideoConfigBean
 from scripts.utils.cmd import gitclone, gitpull
 import subprocess
 from PIL.Image import Image
@@ -16,56 +15,58 @@ import os, platform
 import shutil
 from glob import glob
 
+from scripts.video_process.video_config import VideoConfig
+
 if platform.system() != 'Linux' and not os.path.exists("ffmpeg.exe"):
     print("Warning! ffmpeg.exe not found. Please download ffmpeg and place it in current working dir.")
 
-def extra_video_frame(bean: VideoConfigBean):
-    if bean.animation_mode == 'Video Input':
-        in_path = bean.videoFramesFolder if not bean.flow_video_init_path else bean.flowVideoFramesFolder
-        bean.flo_folder = in_path + '_out_flo_fwd'
-        bean.temp_flo = in_path + '_temp_flo'
-        bean.flo_fwd_folder = in_path + '_out_flo_fwd'
-        bean.flo_bck_folder = in_path + '_out_flo_bck'
-        postfix = f'{generate_file_hash(bean.video_init_path)[:10]}_{bean.start_frame}_{bean.end_frame_orig}_{bean.extract_nth_frame}'
-        if bean.flow_video_init_path:
-            flow_postfix = f'{generate_file_hash(bean.flow_video_init_path)[:10]}_{bean.flow_extract_nth_frame}'
-        if bean.store_frames_on_google_drive:  # suggested by Chris the Wizard#8082 at discord
-            bean.videoFramesFolder = f'{batchFolder}/videoFrames/{postfix}'
-            bean.flowVideoFramesFolder = f'{batchFolder}/flowVideoFrames/{flow_postfix}' if bean.flow_video_init_path else bean.videoFramesFolder
-            bean.condVideoFramesFolder = f'{batchFolder}/condVideoFrames'
-            bean.colorVideoFramesFolder = f'{batchFolder}/colorVideoFrames'
-            bean.controlnetDebugFolder = f'{batchFolder}/controlnetDebug'
-            bean.recNoiseCacheFolder = f'{batchFolder}/recNoiseCache'
+def extra_video_frame(config: VideoConfig):
+    if config.animation_mode == 'Video Input':
+        in_path = config.videoFramesFolder if not config.flow_video_init_path else config.flowVideoFramesFolder
+        config.flo_folder = config.in_path + '_out_flo_fwd'
+        config.temp_flo = config.in_path + '_temp_flo'
+        config.flo_fwd_folder = config.in_path + '_out_flo_fwd'
+        config.flo_bck_folder = config.in_path + '_out_flo_bck'
+        postfix = f'{generate_file_hash(config.video_init_path)[:10]}_{config.start_frame}_{config.end_frame_orig}_{config.extract_nth_frame}'
+        if config.flow_video_init_path:
+            flow_postfix = f'{generate_file_hash(config.flow_video_init_path)[:10]}_{config.flow_extract_nth_frame}'
+        if config.store_frames_on_google_drive:  # suggested by Chris the Wizard#8082 at discord
+            config.videoFramesFolder = f'{batchFolder}/videoFrames/{postfix}'
+            config.flowVideoFramesFolder = f'{batchFolder}/flowVideoFrames/{flow_postfix}' if config.flow_video_init_path else config.videoFramesFolder
+            config.condVideoFramesFolder = f'{batchFolder}/condVideoFrames'
+            config.colorVideoFramesFolder = f'{batchFolder}/colorVideoFrames'
+            config.controlnetDebugFolder = f'{batchFolder}/controlnetDebug'
+            config.recNoiseCacheFolder = f'{batchFolder}/recNoiseCache'
 
         else:
-            bean.videoFramesFolder = f'{root_dir}/videoFrames/{postfix}'
-            bean.flowVideoFramesFolder = f'{root_dir}/flowVideoFrames/{flow_postfix}' if bean.flow_video_init_path else bean.videoFramesFolder
-            bean.condVideoFramesFolder = f'{root_dir}/condVideoFrames'
-            bean.colorVideoFramesFolder = f'{root_dir}/colorVideoFrames'
-            bean.controlnetDebugFolder = f'{root_dir}/controlnetDebug'
-            bean.recNoiseCacheFolder = f'{root_dir}/recNoiseCache'
+            config.videoFramesFolder = f'{root_dir}/videoFrames/{postfix}'
+            config.flowVideoFramesFolder = f'{root_dir}/flowVideoFrames/{flow_postfix}' if config.flow_video_init_path else config.videoFramesFolder
+            config.condVideoFramesFolder = f'{root_dir}/condVideoFrames'
+            config.colorVideoFramesFolder = f'{root_dir}/colorVideoFrames'
+            config.controlnetDebugFolder = f'{root_dir}/controlnetDebug'
+            config.recNoiseCacheFolder = f'{root_dir}/recNoiseCache'
 
-        os.makedirs(bean.controlnetDebugFolder, exist_ok=True)
-        os.makedirs(bean.recNoiseCacheFolder, exist_ok=True)
+        os.makedirs(config.controlnetDebugFolder, exist_ok=True)
+        os.makedirs(config.recNoiseCacheFolder, exist_ok=True)
 
-        extractFrames(bean.video_init_path, bean.videoFramesFolder, bean.extract_nth_frame, bean.start_frame, bean.end_frame)
-        if bean.flow_video_init_path:
-            print(bean.flow_video_init_path, bean.flowVideoFramesFolder, bean.flow_extract_nth_frame)
-            extractFrames(bean.flow_video_init_path, bean.flowVideoFramesFolder, bean.flow_extract_nth_frame, bean.start_frame, bean.end_frame)
+        extractFrames(config.video_init_path, config.videoFramesFolder, config.extract_nth_frame, config.start_frame, config.end_frame)
+        if config.flow_video_init_path:
+            print(config.flow_video_init_path, config.flowVideoFramesFolder, config.flow_extract_nth_frame)
+            extractFrames(config.flow_video_init_path, config.flowVideoFramesFolder, config.flow_extract_nth_frame, config.start_frame, config.end_frame)
 
-        if bean.cond_video_path:
-            print(bean.cond_video_path, bean.condVideoFramesFolder, bean.cond_extract_nth_frame)
-            extractFrames(bean.cond_video_path, bean.condVideoFramesFolder, bean.cond_extract_nth_frame, bean.start_frame, bean.end_frame)
+        if config.cond_video_path:
+            print(config.cond_video_path, config.condVideoFramesFolder, config.cond_extract_nth_frame)
+            extractFrames(config.cond_video_path, config.condVideoFramesFolder, config.cond_extract_nth_frame, config.start_frame, config.end_frame)
 
-        if bean.color_video_path:
+        if config.color_video_path:
             try:
-                os.makedirs(bean.colorVideoFramesFolder, exist_ok=True)
-                Image.open(bean.color_video_path).save(os.path.join(bean.colorVideoFramesFolder, '000001.jpg'))
+                os.makedirs(config.colorVideoFramesFolder, exist_ok=True)
+                Image.open(config.color_video_path).save(os.path.join(config.colorVideoFramesFolder, '000001.jpg'))
             except:
-                print(bean.color_video_path, bean.colorVideoFramesFolder, bean.color_extract_nth_frame)
-                extractFrames(bean.color_video_path, bean.colorVideoFramesFolder, bean.color_extract_nth_frame, bean.start_frame, bean.end_frame)
+                print(config.color_video_path, config.colorVideoFramesFolder, config.color_extract_nth_frame)
+                extractFrames(config.color_video_path, config.colorVideoFramesFolder, config.color_extract_nth_frame, config.start_frame, config.end_frame)
 
-def mask_video(bean: VideoConfigBean):
+def mask_video(bean: VideoConfig):
     # Generate background mask from your init video or use a video as a mask
     mask_source = 'init_video'  # @param ['init_video','mask_video']
     # Check to rotoscope the video and create a mask from it. If unchecked, the raw monochrome video will be used as a mask.

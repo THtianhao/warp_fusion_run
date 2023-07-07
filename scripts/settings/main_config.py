@@ -1,13 +1,18 @@
 from dataclasses import dataclass
 
+import torch
 from PIL import Image
 
 from k_diffusion.sampling import sample_euler
 from scripts.run.sd_function import PT
 from scripts.model_process.mode_func import spherical_dist_loss
+from scripts.settings.setting import steps
+from scripts.utils.env import root_dir
 
 @dataclass
-class NoGuiConfig:
+class MainConfig:
+    # @dataclass
+    # class NoGuiConfig:
     # @title Flow and turbo settings
     # @markdown #####**Video Optical Flow Settings:**
     flow_warp = True  # @param {type: 'boolean'}
@@ -84,7 +89,7 @@ class NoGuiConfig:
     # @markdown Expands consistency mask without blurring the edges.
     consistency_dilate = 3  # @param
 
-    # disable_cc_for_turbo_frames = False #@param {"type":"boolean"}
+    disable_cc_for_turbo_frames = False #@param {"type":"boolean"}
     # disable consistency for turbo frames, the same as forward_weights_clip_turbo_step = 1, but a bit faster
 
     # @markdown ###Frame padding
@@ -155,11 +160,11 @@ class NoGuiConfig:
     colormatch_regrain = False  # @param {'type':'boolean'}
     warp_mode = 'use_image'  # @param ['use_latent', 'use_image']
     warp_towards_init = 'off'  # @param ['stylized', 'off']
-    # if warp_towards_init != 'off':
-        # if flow_lq:
-        #     raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_half.jit').eval()
-        # else:
-        #     raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_fp32.jit').eval()
+    if warp_towards_init != 'off':
+        if flow_lq:
+            raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_half.jit').eval()
+        else:
+            raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_fp32.jit').eval()
 
     cond_image_src = 'init'  # @param ['init', 'stylized']
     # DD-style losses, renders 2 times slower (!) and more memory intensive :D
@@ -370,5 +375,44 @@ class NoGuiConfig:
 
     prompt_patterns_sched = {}
 
+    # run private config
+    start_code_cb = None  # variable for cb_code
+    guidance_start_code = None  # variable for guidance code
+
+    display_size = 512  # @param
+    image_prompts = {}
+    intermediate_saves = None
+    intermediates_in_subfolder = True
+    steps_per_checkpoint = None
+    max_frames = 0
+
+    key_frames = True
+    interp_spline = 'Linear'
+    perlin_init = False
+    perlin_mode = 'mixed'
 
 
+    ##@markdown `n_batches` ignored with animation modes.
+    display_rate = 9999999
+    ##@param{type: 'number'}
+    n_batches = 1
+    ##@param{type: 'number'}
+    start_code = None
+    first_latent = None
+    first_latent_source = 'not set'
+    n_mean_avg = None
+    n_std_avg = None
+    n_smooth = 0.5
+    # Update Model Settings
+    timestep_respacing = f'ddim{steps}'
+    diffusion_steps = (1000 // steps) * steps if steps < 1000 else steps
+
+    batch_size = 1
+
+    # @markdown ---
+    # @markdown Frames to run. Leave empty or [0,0] to run all frames.
+    frame_range = [0, 0]  # @param
+    resume_run = False  # @param{type: 'boolean'}
+    run_to_resume = 'latest'  # @param{type: 'string'}
+    resume_from_frame = 'latest'  # @param{type: 'string'}
+    retain_overwritten_frames = False  # @param{type: 'boolean'}

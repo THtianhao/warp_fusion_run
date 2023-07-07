@@ -21,8 +21,6 @@ def load_img_lpips(path, size=(512, 512)):
     image = normalize(image)
     return image.cuda()
 
-diff = None
-
 def l1_loss(x, y):
     return torch.sqrt(torch.mean((x - y) ** 2))
 
@@ -40,13 +38,12 @@ def content_aware(config: ContentAwareConfig, videoFramesFolder):
         diff_func = joint_loss
 
     if config.analyze_video:
-        diff = [0]
         frames = sorted(glob(f'{videoFramesFolder}/*.jpg'))
         from tqdm.notebook import trange
 
         for i in trange(1, len(frames)):
             with torch.no_grad():
-                diff.append(diff_func(load_img_lpips(frames[i - 1]), load_img_lpips(frames[i])).sum().mean().detach().cpu().numpy())
+                config.diff.append(diff_func(load_img_lpips(frames[i - 1]), load_img_lpips(frames[i])).sum().mean().detach().cpu().numpy())
 
         import numpy as np
         import matplotlib.pyplot as plt
@@ -54,34 +51,34 @@ def content_aware(config: ContentAwareConfig, videoFramesFolder):
         plt.rcParams["figure.figsize"] = [12.50, 3.50]
         plt.rcParams["figure.autolayout"] = True
 
-        y = diff
+        y = config.diff
         plt.title(f"{config.diff_function} frame difference")
         plt.plot(y, color="red")
-        calc_thresh = np.percentile(np.array(diff), 97)
+        calc_thresh = np.percentile(np.array(config.diff), 97)
         plt.axhline(y=calc_thresh, color='b', linestyle='dashed')
 
         plt.show()
         print(f'suggested threshold: {calc_thresh.round(2)}')
     # @title Plot threshold vs frame difference
     # @markdown The suggested threshold may be incorrect, so you can plot your value and see if it covers the peaks.
-    if diff is not None:
+    if config.diff is not None:
         import numpy as np
         import matplotlib.pyplot as plt
 
         plt.rcParams["figure.figsize"] = [12.50, 3.50]
         plt.rcParams["figure.autolayout"] = True
 
-        y = diff
+        y = config.diff
         plt.title(f"{config.diff_function} frame difference")
         plt.plot(y, color="red")
-        calc_thresh = np.percentile(np.array(diff), 97)
+        calc_thresh = np.percentile(np.array(config.diff), 97)
         plt.axhline(y=calc_thresh, color='b', linestyle='dashed')
         user_threshold = 0.13  # @param {'type':'raw'}
         plt.axhline(y=user_threshold, color='r')
 
         plt.show()
         peaks = []
-        for i, d in enumerate(diff):
+        for i, d in enumerate(config.diff):
             if d > user_threshold:
                 peaks.append(i)
         print(f'Peaks at frames: {peaks} for user_threshold of {user_threshold}')

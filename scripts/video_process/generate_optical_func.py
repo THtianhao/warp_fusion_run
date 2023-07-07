@@ -13,47 +13,16 @@ from PIL import Image
 from tqdm import tqdm
 
 from annotator.uniformer.mmcv import DataLoader
-from scripts.bean.video_config_bean import VideoConfigBean
 from scripts.settings.setting import side_x, side_y
 from scripts.utils.env import root_dir
 from scripts.video_process.color_transfor_func import flow_to_image, save_preview, make_cc_map, vstack, hstack, fit
 from scripts.video_process.flow_datasets import flowDataset
-
-flow_warp = True
-check_consistency = True
-force_flow_generation = False  # @param {type:'boolean'}
-
-use_legacy_cc = False  # @param{'type':'boolean'}
-threads = 4  # @param {'type':'number'}
-# @markdown If you're having "process died" error on Windows, set num_workers to 0
-num_workers = 0  # @param {'type':'number'}
-
-# @markdown Use lower quality model (half-precision).\
-# @markdown Uses half the vram, allows fitting 1500x1500+ frames into 16gigs, which the original full-precision RAFT can't do.
-flow_lq = True  # @param {type:'boolean'}
-# @markdown Save human-readable flow images along with motion vectors. Check /{your output dir}/videoFrames/out_flo_fwd folder.
-flow_save_img_preview = False  # @param {type:'boolean'}
-
-# #@markdown reverse_cc_order - on - default value (like in older notebooks). off - reverses consistency computation
-reverse_cc_order = True  #
-# #@param {type:'boolean'}
-if not flow_warp: print('flow_wapr not set, skipping')
-# @markdown Use previous pre-compile raft version (won't work with pytorch 2.0)
-use_jit_raft = False  # @param {'type':'boolean'}
-# @markdown Compile raft model (only with use_raft_jit = False). Compiles the model (~about 2 minutes) for ~30% speedup. Use for very long runs.
-compile_raft = False  # @param {'type':'boolean'}
-# @markdown Flow estimation quality (number of iterations, 12 - default. higher - better and slower)
-num_flow_updates = 12  # @param {'type':'number'}
-# \@markdown Unreliable areas mask (missed consistency) width
-# \@markdown Default = 1
-missed_consistency_dilation = 2  # \ @param {'type':'number'}
-# \@markdown Motion edge areas (edge consistency) width
-# \@markdown Default = 11
-edge_consistency_width = 11  # \@param {'type':'number'}
-
 from multiprocessing.pool import ThreadPool as Pool
 import gc
-def generate_optical_flow(bean:VideoConfigBean):
+
+from scripts.video_process.video_config import VideoConfig
+
+def generate_optical_flow(bean:VideoConfig):
     # if (animation_mode == 'Video Input') and (flow_warp):
     def flow_batch(i, batch, pool):
         with torch.cuda.amp.autocast():

@@ -4,29 +4,20 @@ import mediapipe as mp
 
 import numpy
 import torch
-from PIL import Image
 import cv2
-import gc
 import io
 import math
-from IPython import display
-# !wget "https://download.pytorch.org/models/vgg16-397923af.pth" -O /root/.cache/torch/hub/checkpoints/vgg16-397923af.pth
-from PIL import Image, ImageOps
+from PIL import ImageOps
 import requests
 import json
 from torch import nn
 from torch.nn import functional as F
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
-from tqdm.notebook import tqdm
-# from CLIP import clip
 from resize_right import resize
 import numpy as np
-import matplotlib.pyplot as plt
-import random
-from ipywidgets import Output
 from scripts.settings.setting import side_x, side_y, skip_augs
-from scripts.settings.main_settings import *
+from scripts.settings.no_gui_config import *
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print('Using device:', DEVICE)
@@ -205,7 +196,6 @@ def generate_annotation(input_image: Image.Image, max_faces: int, min_face_size_
 
 
 # https://gist.github.com/adefossez/0646dbe9ed4005480a2407c62aac8869
-import PIL
 
 
 def interp(t):
@@ -690,9 +680,6 @@ def do_3d_step(img_filepath, frame_num, forward_clip):
         # warped.save(f'warped_{frame_num}.jpg')
 
     return warped
-
-import copy
-
 
 def get_frame_from_color_mode(mode, offset, frame_num):
     if mode == 'color_video':

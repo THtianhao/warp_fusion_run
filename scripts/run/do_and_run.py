@@ -17,6 +17,7 @@ import copy
 from scripts.model_process.model_config import ModelConfig
 from scripts.model_process.model_env import model_version, control_model_urls
 from scripts.settings.main_settings import controlnet_multimodel
+from scripts.utils.env import root_dir
 from scripts.video_process.color_transfor_func import force_download
 
 def run_prepare_config(model_config: ModelConfig, sd_model):
@@ -372,8 +373,6 @@ def run_prepare_config(model_config: ModelConfig, sd_model):
         turbo_frame_skips_steps = None
     else:
         turbo_frame_skips_steps = int(turbo_frame_skips_steps.split('%')[0]) / 100
-
-    disable_cc_for_turbo_frames = False
 
     colormatch_method_fn = PT.lab_transfer
     if colormatch_method == 'PDF':

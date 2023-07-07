@@ -3,8 +3,11 @@ import torch
 import torch.nn as nn
 
 from modules import prompt_parser
-from scripts.model_process.model_config import model_version
-from scripts.settings.main_settings import img_zero_uncond, controlnet_multimodel_mode, controlnet_multimodel
+from scripts.settings.no_gui_config import img_zero_uncond, controlnet_multimodel_mode, controlnet_multimodel
+from scripts.model_process.model_env import model_version
+
+# from scripts.gui.gui_env import controlnet_multimodel_mode
+# from scripts.settings.main_settings import img_zero_uncond, controlnet_multimodel_mode, controlnet_multimodel
 
 class CFGDenoiser(nn.Module):
     def __init__(self, model):
