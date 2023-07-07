@@ -4,7 +4,6 @@
 import math
 import os
 
-from scripts.sd_model_select import sd_model
 from scripts.settings.main_settings import warp_mode, match_color_strength, consistency_blur, consistency_dilate, use_patchmatch_inpaiting, missed_consistency_weight, overshoot_consistency_weight, \
     edges_consistency_weight
 from scripts.settings.setting import warp_interp

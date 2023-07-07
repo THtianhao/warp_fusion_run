@@ -70,7 +70,7 @@ if model_version == 'v1_instructpix2pix':
     config_path = f"{root_dir}/stablediffusion/configs/stable-diffusion/v1_instruct_pix2pix.yaml"
 vae_ckpt = ''  # @param {'type':'string'}
 if vae_ckpt == '': vae_ckpt = None
-load_to = 'cpu'  # @param ['cpu','gpu']
+load_to = 'gpu'  # @param ['cpu','gpu']
 if load_to == 'gpu': load_to = 'cuda'
 quantize = True  # @param {'type':'boolean'}
 no_half_vae = False  # @param {'type':'boolean'}

@@ -2,54 +2,7 @@
 init_latent = None
 target_embed = None
 
-import os
-
 # import datetime
-
-# (c) Alex Spirin 2023
-# We use input file hashes to automate video extraction
-#
-
-def get_frame_from_path_start_end_nth(video_path: str, num_frame: int, start: int = 0, end: int = 0, nth: int = 1) -> Image:
-    assert os.path.exists(video_path), f"Video path or frame folder not found at {video_path}. Please specify the correct path."
-    num_frame = max(0, num_frame)
-    start = max(0, start)
-    nth = max(1, nth)
-    if os.path.isdir(video_path):
-        frame_list = []
-        image_extensions = ['jpg', 'png', 'tiff', 'jpeg', 'JPEG', 'bmp']
-        for image_extension in image_extensions:
-            flist = glob.glob(os.path.join(video_path, f'*.{image_extension}'))
-            if len(flist) > 0:
-                frame_list = flist
-                break
-        assert len(frame_list) != 0, f'No frames with {", ".join(image_extensions)} extensions found in folder {video_path}. Please specify the correct path.'
-        if end == 0: end = len(frame_list)
-        frame_list = frame_list[start:end:nth]
-        num_frame = min(num_frame, len(frame_list))
-        return PIL.Image.open(frame_list[num_frame])
-
-    elif os.path.isfile(video_path):
-        video = cv2.VideoCapture(video_path)
-        if not video.isOpened():
-            video.release()
-            raise Exception(f"Error opening video file {video_path}. Please specify the correct path.")
-        total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-        if end == 0: end = total_frames
-        num_frame = min(num_frame, total_frames)
-        frame_range = list(range(start, end, nth))
-        frame_number = frame_range[num_frame]
-        video.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-        ret, frame = video.read()
-        if not ret:
-            video.release()
-            raise Exception(f"Error reading frame {frame_number} from file {video_path}.")
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        image = Image.fromarray(frame)
-        video.release()
-        return image
-
-import PIL
 
 try:
     import Image
@@ -61,35 +14,15 @@ early_stop = 0
 inpainting_stop = 0
 warp_interp = Image.BILINEAR
 
+import os
+import sys
+import time
 # init SD
 from glob import glob
-import argparse, os, sys
+
 import PIL
-import torch
-import numpy as np
-from omegaconf import OmegaConf
-from PIL import Image
-from tqdm.auto import tqdm, trange
-from itertools import islice
-from einops import rearrange, repeat
-from torchvision.utils import make_grid
-from torch import autocast
-from contextlib import nullcontext
-import time
 from pytorch_lightning import seed_everything
-
-os.chdir(f"{root_dir}/stablediffusion")
-from ldm.util import instantiate_from_config
-from ldm.models.diffusion.ddim import DDIMSampler
-from ldm.models.diffusion.plms import PLMSSampler
-from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
-
-os.chdir(f"{root_dir}")
-
-def extract_into_tensor(a, t, x_shape):
-    b, *_ = t.shape
-    out = a.gather(-1, t)
-    return out.reshape(b, *((1,) * (len(x_shape) - 1)))
+from tqdm.auto import trange
 
 from kornia import augmentation as KA
 
@@ -215,13 +148,7 @@ def sd_cond_fn(x, t, denoised, init_image_sd, init_latent, init_scale,
     return grad
 
 import cv2
-
-%cd
-"{root_dir}/python-color-transfer"
-from python_color_transfer.color_transfer import ColorTransfer, Regrain
-%cd
-"{root_path}/"
-
+from python_color_transfer.color_transfer import ColorTransfer
 PT = ColorTransfer()
 
 def match_color_var(stylized_img, raw_img, opacity=1., f=PT.pdf_transfer, regrain=False):
@@ -239,7 +166,6 @@ def match_color_var(stylized_img, raw_img, opacity=1., f=PT.pdf_transfer, regrai
 
 # https://gist.githubusercontent.com/trygvebw/c71334dd127d537a15e9d59790f7f5e1/raw/ed0bed6abaf75c0f1b270cf6996de3e07cbafc81/find_noise.py
 
-import torch
 import numpy as np
 # import k_diffusion as K
 

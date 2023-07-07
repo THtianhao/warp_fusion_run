@@ -1,11 +1,10 @@
 from glob import glob
 
-import PIL
 import numpy as np
 import torch
 from PIL import Image
 
-from scripts.function.sd_function import normalize
+from scripts.run.sd_function import normalize
 from scripts.settings.setting import width_height, warp_interp
 from scripts.video_process.Input_padder import InputPadder
 
