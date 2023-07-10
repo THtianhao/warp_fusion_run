@@ -78,27 +78,27 @@ def mask_video(bean: VideoConfig):
         subprocess.run('python -m pip -q install av pims')
         gitclone('https://github.com/Sxela/RobustVideoMattingCLI')
         if mask_source == 'init_video':
-            videoFramesAlpha = bean.videoFramesFolder + 'Alpha'
-            createPath(videoFramesAlpha)
+            bean.videoFramesAlpha = bean.videoFramesFolder + 'Alpha'
+            createPath(bean.videoFramesAlpha)
             cmd = ['python', f"{root_dir}/RobustVideoMattingCLI/rvm_cli.py", '--input_path', f'{bean.videoFramesFolder}', '--output_alpha', f"{root_dir}/alpha.mp4"]
             process = subprocess.Popen(cmd, cwd=f'{root_dir}', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            extractFrames(f"{root_dir}/alpha.mp4", f"{videoFramesAlpha}", 1, 0, 999999999)
+            extractFrames(f"{root_dir}/alpha.mp4", f"{bean.videoFramesAlpha}", 1, 0, 999999999)
         if mask_source == 'mask_video':
-            videoFramesAlpha = bean.videoFramesFolder + 'Alpha'
-            createPath(videoFramesAlpha)
+            bean.videoFramesAlpha = bean.videoFramesFolder + 'Alpha'
+            createPath(bean.videoFramesAlpha)
             maskVideoFrames = bean.videoFramesFolder + 'Mask'
             createPath(maskVideoFrames)
             extractFrames(mask_video_path, f"{maskVideoFrames}", bean.extract_nth_frame, bean.start_frame, bean.end_frame)
             cmd = ['python', f"{root_dir}/RobustVideoMattingCLI/rvm_cli.py", '--input_path', f'{maskVideoFrames}', '--output_alpha', f"{root_dir}/alpha.mp4"]
             process = subprocess.Popen(cmd, cwd=f'{root_dir}', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            extractFrames(f"{root_dir}/alpha.mp4", f"{videoFramesAlpha}", 1, 0, 999999999)
+            extractFrames(f"{root_dir}/alpha.mp4", f"{bean.videoFramesAlpha}", 1, 0, 999999999)
     else:
         if mask_source == 'init_video':
-            videoFramesAlpha = bean.videoFramesFolder
+            bean.videoFramesAlpha = bean.videoFramesFolder
         if mask_source == 'mask_video':
-            videoFramesAlpha = bean.videoFramesFolder + 'Alpha'
-            createPath(videoFramesAlpha)
-            extractFrames(mask_video_path, f"{videoFramesAlpha}", bean.extract_nth_frame, bean.start_frame, bean.end_frame)
+            bean.videoFramesAlpha = bean.videoFramesFolder + 'Alpha'
+            createPath(bean.videoFramesAlpha)
+            extractFrames(mask_video_path, f"{bean.videoFramesAlpha}", bean.extract_nth_frame, bean.start_frame, bean.end_frame)
             # extract video
 
 def download_reference_repository(animation_mode, force: bool = False):

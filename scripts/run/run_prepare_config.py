@@ -18,8 +18,7 @@ from safetensors import safe_open
 from modules import sd_hijack
 import copy
 
-from scripts.lora_embedding.lora_and_embedding_ import split_lora_from_prompts
-from scripts.lora_embedding.lora_embedding_fun import inject_lora
+from scripts.lora_embedding.lora_embedding_fun import inject_lora, split_lora_from_prompts
 from scripts.run.sd_function import diffusion_sampling_mode
 from scripts.settings.setting import batch_name, batchFolder, steps, width_height, clip_guidance_scale, tv_scale, range_scale, cutn_batches, init_image, init_scale, skip_steps, side_x, side_y, \
     skip_augs
@@ -285,12 +284,7 @@ def run_prepare_config(main_config: MainConfig,
         else:
             raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_fp32.jit').eval()
 
-    def printf(*msg, file=f'{root_dir}/log.txt'):
-        now = datetime.now()
-        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-        with open(file, 'a') as f:
-            msg = f'{dt_string}> {" ".join([str(o) for o in (msg)])}'
-            print(msg, file=f)
+
 
     def move_files(start_num, end_num, old_folder, new_folder):
         for i in range(start_num, end_num):
@@ -343,16 +337,16 @@ def run_prepare_config(main_config: MainConfig,
     else:
         seed = int(main_config.set_seed)
 
-    new_prompt_loras = {}
+    main_config.new_prompt_loras = {}
     if main_config.text_prompts:
-        _, new_prompt_loras = split_lora_from_prompts(main_config.text_prompts)
-        print('Inferred loras schedule:\n', new_prompt_loras)
+        _, main_config.new_prompt_loras = split_lora_from_prompts(main_config.text_prompts)
+        print('Inferred loras schedule:\n', main_config.new_prompt_loras)
 
-    if new_prompt_loras not in [{}, [], '', None]:
+    if main_config.new_prompt_loras not in [{}, [], '', None]:
         inject_lora(sd_model)
         # load_loras(use_loras,lora_multipliers)
 
-    args = {
+    main_config.args = {
         'batchNum': batchNum,
         'prompts_series': main_config.text_prompts if main_config.text_prompts else None,
         'rec_prompts_series': main_config.rec_prompts if main_config.rec_prompts else None,
@@ -401,6 +395,7 @@ def run_prepare_config(main_config: MainConfig,
         'skip_augs': skip_augs,
     }
     if main_config.frame_range not in [None, [0, 0], '', [0], 0]:
-        args['start_frame'] = main_config.frame_range[0]
-        args['max_frames'] = min(args['max_frames'], main_config.frame_range[1])
-    args = SimpleNamespace(**args)
+        main_config.args['start_frame'] = main_config.frame_range[0]
+        main_config.args['max_frames'] = min(main_config.args['max_frames'], main_config.frame_range[1])
+    main_config.args = SimpleNamespace(**main_config.args)
+    gc.collect()

@@ -34,6 +34,11 @@ class VideoConfig:
     video_init_seed_continuity = False
     videoFramesFolder = ''
     flowVideoFramesFolder = ''
+    condVideoFramesFolder = ''
+    colorVideoFramesFolder = ''
+    controlnetDebugFolder = ''
+    recNoiseCacheFolder = ''
+    videoFramesAlpha = ''
     flo_folder = ''
     temp_flo = ''
     flo_fwd_folder = ''
@@ -71,3 +76,4 @@ class VideoConfig:
     # \@markdown Motion edge areas (edge consistency) width
     # \@markdown Default = 11
     edge_consistency_width = 11  # \@param {'type':'number'}
+

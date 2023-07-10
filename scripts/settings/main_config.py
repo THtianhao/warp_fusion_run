@@ -89,7 +89,7 @@ class MainConfig:
     # @markdown Expands consistency mask without blurring the edges.
     consistency_dilate = 3  # @param
 
-    disable_cc_for_turbo_frames = False #@param {"type":"boolean"}
+    disable_cc_for_turbo_frames = False  # @param {"type":"boolean"}
     # disable consistency for turbo frames, the same as forward_weights_clip_turbo_step = 1, but a bit faster
 
     # @markdown ###Frame padding
@@ -130,6 +130,7 @@ class MainConfig:
     background = "init_video"  # @param ['image', 'color', 'init_video']
     # @markdown Specify the init image path or color depending on your background source choice.
     background_source = 'red'  # @param {'type':'string'}
+
     # @title Frame correction
     # @markdown Match frame pixels or latent to other frames to preven oversaturation and feedback loop artifacts
     # @markdown ###Latent matching
@@ -391,7 +392,6 @@ class MainConfig:
     perlin_init = False
     perlin_mode = 'mixed'
 
-
     ##@markdown `n_batches` ignored with animation modes.
     display_rate = 9999999
     ##@param{type: 'number'}
@@ -408,11 +408,13 @@ class MainConfig:
     diffusion_steps = (1000 // steps) * steps if steps < 1000 else steps
 
     batch_size = 1
-
+    new_prompt_loras = {}
     # @markdown ---
     # @markdown Frames to run. Leave empty or [0,0] to run all frames.
     frame_range = [0, 0]  # @param
     resume_run = False  # @param{type: 'boolean'}
     run_to_resume = 'latest'  # @param{type: 'string'}
     resume_from_frame = 'latest'  # @param{type: 'string'}
-    retain_overwritten_frames = False  # @param{type: 'boolean'}
+    retain_overwritteon_frames = False  # @param{type: 'boolean'}
+
+    args = None
