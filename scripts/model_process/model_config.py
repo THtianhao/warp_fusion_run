@@ -17,3 +17,4 @@ class ModelConfig:
     model_wrap_cfg = None
     sigma_min = None
     sigma_max = None
+    model_wrap = None

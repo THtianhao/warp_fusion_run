@@ -406,7 +406,7 @@ class MainConfig:
     # Update Model Settings
     timestep_respacing = f'ddim{steps}'
     diffusion_steps = (1000 // steps) * steps if steps < 1000 else steps
-
+    inverse_mask_order = None
     batch_size = 1
     new_prompt_loras = {}
     # @markdown ---

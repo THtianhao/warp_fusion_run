@@ -4,17 +4,23 @@ import json
 from typing import Mapping
 
 import numpy
+import open_clip
 
 from annotator.util import resize_image, HWC3, nms
 from modules import prompt_parser
+from scripts.clip_process.clip_config import ClipConfig
+from scripts.clip_process.clip_process import clip_type, clip_pretrain
+from scripts.content_ware_process.content_aware_config import ContentAwareConfig
 from scripts.content_ware_process.content_aware_scheduing import rmse
 from scripts.model_process.mode_func import get_image_embed, spherical_dist_loss, load_img_sd, make_static_thresh_model_fn, make_cond_model_fn, make_batch_sd
 from scripts.model_process.model_config import ModelConfig
-from scripts.model_process.model_env import device, model_version, dynamic_thresh
+from scripts.model_process.model_env import device, model_version, dynamic_thresh, quantize, no_half_vae
 from scripts.refrerence_control_processor.reference_config import ReferenceConfig
-from scripts.run.run_func import VERBOSE, printf
+from scripts.run.run_func import VERBOSE, printf, diffusion_model
 from scripts.settings.main_config import MainConfig
 from scripts.settings.setting import normalize, lpips_model, init_image, width_height
+from scripts.video_process.color_transfor_func import high_brightness_threshold, high_brightness_adjust_ratio, low_brightness_threshold, low_brightness_adjust_ratio, high_brightness_adjust_fix_amount, \
+    low_brightness_adjust_fix_amount, max_brightness_threshold, min_brightness_threshold, enable_adjust_brightness
 from scripts.video_process.video_config import VideoConfig
 from functools import partial
 
@@ -347,19 +353,22 @@ def find_noise_for_image(model, x, prompt, steps, cond_scale=0.0, verbose=False,
 # Based on changes suggested by briansemrau in https://github.com/AUTOMATIC1111/stable-diffusion-webui/issues/736
 import hashlib
 
-def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditioning, cfg_scale, steps, frame_num, main_config: MainConfig, video_config: VideoConfig, sd_model):
+def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditioning, cfg_scale, steps, frame_num,
+                                          main_config: MainConfig, video_config: VideoConfig, content_config: ContentAwareConfig,
+                                          model_config: ModelConfig,
+                                          sd_model):
     rec_noise_setting_list = {
         'init_image': init_image,
-        'seed': main_config.seed,
+        'seed': main_config.args.seed,
         'width': width_height[0],
         'height': width_height[1],
-        'diffusion_model': main_config.diffusion_model,
+        'diffusion_model': diffusion_model,
         'diffusion_steps': main_config.diffusion_steps,
-        'video_init_path': main_config.video_init_path,
-        'extract_nth_frame': main_config.extract_nth_frame,
-        'flow_video_init_path': main_config.flow_video_init_path,
-        'flow_extract_nth_frame': main_config.flow_extract_nth_frame,
-        'video_init_seed_continuity': main_config.video_init_seed_continuity,
+        'video_init_path': video_config.video_init_path,
+        'extract_nth_frame': video_config.extract_nth_frame,
+        'flow_video_init_path': video_config.flow_video_init_path,
+        'flow_extract_nth_frame': video_config.flow_extract_nth_frame,
+        'video_init_seed_continuity': video_config.video_init_seed_continuity,
         'turbo_mode': main_config.turbo_mode,
         'turbo_steps': main_config.turbo_steps,
         'turbo_preroll': main_config.turbo_preroll,
@@ -373,31 +382,31 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'consistency_blur': main_config.consistency_blur,
         'inpaint_blend': main_config.inpaint_blend,
         'match_color_strength': main_config.match_color_strength,
-        'high_brightness_threshold': main_config.high_brightness_threshold,
-        'high_brightness_adjust_ratio': main_config.high_brightness_adjust_ratio,
-        'low_brightness_threshold': main_config.low_brightness_threshold,
-        'low_brightness_adjust_ratio': main_config.low_brightness_adjust_ratio,
-        'high_brightness_adjust_fix_amount': main_config.high_brightness_adjust_fix_amount,
-        'low_brightness_adjust_fix_amount': main_config.low_brightness_adjust_fix_amount,
-        'max_brightness_threshold': main_config.max_brightness_threshold,
-        'min_brightness_threshold': main_config.min_brightness_threshold,
-        'enable_adjust_brightness': main_config.enable_adjust_brightness,
+        'high_brightness_threshold': high_brightness_threshold,
+        'high_brightness_adjust_ratio': high_brightness_adjust_ratio,
+        'low_brightness_threshold': low_brightness_threshold,
+        'low_brightness_adjust_ratio': low_brightness_adjust_ratio,
+        'high_brightness_adjust_fix_amount': high_brightness_adjust_fix_amount,
+        'low_brightness_adjust_fix_amount': low_brightness_adjust_fix_amount,
+        'max_brightness_threshold': max_brightness_threshold,
+        'min_brightness_threshold': min_brightness_threshold,
+        'enable_adjust_brightness': enable_adjust_brightness,
         'dynamic_thresh': main_config.dynamic_thresh,
         'warp_interp': warp_interp,
-        'reverse_cc_order': main_config.reverse_cc_order,
-        'flow_lq': main_config.flow_lq,
+        'reverse_cc_order': video_config.reverse_cc_order,
+        'flow_lq': video_config.flow_lq,
         'use_predicted_noise': main_config.use_predicted_noise,
         'clip_guidance_scale': clip_guidance_scale,
-        'clip_type': main_config.clip_type,
-        'clip_pretrain': main_config.clip_pretrain,
+        'clip_type': clip_type,
+        'clip_pretrain': clip_pretrain,
         'missed_consistency_weight': main_config.missed_consistency_weight,
         'overshoot_consistency_weight': main_config.overshoot_consistency_weight,
         'edges_consistency_weight': main_config.edges_consistency_weight,
         'flow_blend_schedule': main_config.flow_blend_schedule,
         'steps_schedule': main_config.steps_schedule,
         'latent_scale_schedule': main_config.latent_scale_schedule,
-        'flow_blend_template': main_config.flow_blend_template,
-        'make_schedules': main_config.make_schedules,
+        'flow_blend_template': content_config.flow_blend_template,
+        'make_schedules': content_config.make_schedules,
         'normalize_latent': normalize_latent,
         'normalize_latent_offset': main_config.normalize_latent_offset,
         'colormatch_frame': main_config.colormatch_frame,
@@ -407,13 +416,13 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'apply_mask_after_warp': main_config.apply_mask_after_warp,
         'background': main_config.background,
         'background_source': main_config.background_source,
-        'mask_source': main_config.main_config.mask_source,
-        'extract_background_mask': main_config.extract_background_mask,
-        'mask_video_path': main_config.mask_video_path,
+        'mask_source': main_config.mask_source,
+        'extract_background_mask': video_config.extract_background_mask,
+        'mask_video_path': video_config.mask_video_path,
         'invert_mask': main_config.invert_mask,
         'warp_strength': main_config.warp_strength,
         'flow_override_map': main_config.flow_override_map,
-        'respect_sched': main_config.respect_sched,
+        'respect_sched': content_config.respect_sched,
         'color_match_frame_str': main_config.color_match_frame_str,
         'colormatch_offset': main_config.colormatch_offset,
         'latent_fixed_mean': latent_fixed_mean,
@@ -428,19 +437,19 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'grad_denoised': main_config.grad_denoised,
         'colormatch_after': main_config.colormatch_after,
         'colormatch_turbo': main_config.colormatch_turbo,
-        'model_version': main_config.model_version,
+        'model_version': model_version,
         'cond_image_src': main_config.cond_image_src,
         'warp_num_k': main_config.warp_num_k,
         'warp_forward': main_config.warp_forward,
         'sampler': main_config.sampler.__name__,
-        'mask_clip': (main_config.mask_clip_low, main_config.mask_clip_high),
+        'mask_clip': (main_config.mask_clip[0], main_config.mask_clip[1]),
         'inpainting_mask_weight': inpainting_mask_weight,
         'inverse_inpainting_mask': inverse_inpainting_mask,
         'mask_source': main_config.mask_source,
-        'model_path': main_config.model_path,
-        'diff_override': main_config.diff_override,
+        'model_path': model_config.model_path,
+        'diff_override': content_config.diff_override,
         'image_scale_schedule': main_config.image_scale_schedule,
-        'image_scale_template': main_config.image_scale_template,
+        'image_scale_template': content_config.image_scale_template,
         'detect_resolution': main_config.detect_resolution,
         'bg_threshold': main_config.bg_threshold,
         'diffuse_inpaint_mask_blur': main_config.diffuse_inpaint_mask_blur,
@@ -456,7 +465,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'alpha_masked_diffusion': main_config.alpha_masked_diffusion,
         'inverse_mask_order': main_config.inverse_mask_order,
         'invert_alpha_masked_diffusion': main_config.invert_alpha_masked_diffusion,
-        'quantize': main_config.quantize,
+        'quantize': quantize,
         'cb_noise_upscale_ratio': main_config.cb_noise_upscale_ratio,
         'cb_add_noise_to_latent': main_config.cb_add_noise_to_latent,
         'cb_use_start_code': main_config.cb_use_start_code,
@@ -464,7 +473,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'cb_norm_latent': main_config.cb_norm_latent,
         'guidance_use_start_code': main_config.guidance_use_start_code,
         'controlnet_preprocess': controlnet_preprocess,
-        'small_controlnet_model_path': main_config.small_controlnet_model_path,
+        'small_controlnet_model_path': model_config.small_controlnet_model_path,
         'use_scale': main_config.use_scale,
         'g_invert_mask': main_config.g_invert_mask,
         'controlnet_multimodel': json.dumps(main_config.controlnet_multimodel),
@@ -475,7 +484,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'deflicker_latent_scale': main_config.deflicker_latent_scale,
         'deflicker_scale': main_config.deflicker_scale,
         'controlnet_multimodel_mode': main_config.controlnet_multimodel_mode,
-        'no_half_vae': main_config.no_half_vae,
+        'no_half_vae': no_half_vae,
         'temporalnet_source': main_config.temporalnet_source,
         'temporalnet_skip_1st_frame': main_config.temporalnet_skip_1st_frame,
         'rec_randomness': main_config.rec_randomness,
@@ -485,7 +494,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'inpainting_mask_source': main_config.inpainting_mask_source,
         'rec_steps_pct': main_config.rec_steps_pct,
         'max_faces': main_config.max_faces,
-        'num_flow_updates': main_config.num_flow_updates,
+        'num_flow_updates': video_config.num_flow_updates,
         'control_sd15_openpose_hands_face': main_config.control_sd15_openpose_hands_face,
         'control_sd15_depth_detector': main_config.control_sd15_openpose_hands_face,
         'control_sd15_softedge_detector': main_config.control_sd15_softedge_detector,
@@ -657,7 +666,9 @@ pred_noise = None
 
 def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps, seed,
            init_scale, init_latent_scale, cond_image, cfg_scale, image_scale, config: MainConfig,
-           video_config: VideoConfig, ref_config: ReferenceConfig, model_config: ModelConfig, sd_model,
+           video_config: VideoConfig, ref_config: ReferenceConfig, model_config: ModelConfig,
+           content_config: ContentAwareConfig, clip_config: ClipConfig,
+           sd_model,
            cond_fn=None, init_grad_img=None, consistency_mask=None, frame_num=0,
            deflicker_src=None, prev_frame=None, rec_prompt=None, rec_frame=None,
            control_inpainting_mask=None, shuffle_source=None, ref_image=None, alpha_mask=None):
@@ -787,7 +798,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
 
     if clip_guidance_scale > 0:
         # text_features = clip_model.encode_text(text)
-        target_embed = F.normalize(config.clip_model.encode_text(config.open_clip.tokenize(prompt_clip).cuda()).float())
+        target_embed = F.normalize(clip_config.clip_model.encode_text(open_clip.tokenize(prompt_clip).cuda()).float())
     else:
         target_embed = None
 
@@ -812,8 +823,8 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
 
                             rho = 7.
                             # 14.6146
-                            sigma_max = config.model_wrap.sigmas[-1].item()
-                            sigma_min_nominal = config.model_wrap.sigmas[0].item()
+                            sigma_max = model_config.model_wrap.sigmas[-1].item()
+                            sigma_min_nominal = model_config.model_wrap.sigmas[0].item()
                             # get the "sigma before sigma_min" from a slightly longer ramp
                             # https://github.com/crowsonkb/k-diffusion/pull/23#issuecomment-1234872495
                             premature_sigma_min = get_premature_sigma_min(
@@ -830,7 +841,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                 device='cuda',
                             )
                         else:
-                            sigmas = config.model_wrap.get_sigmas(ddim_steps)
+                            sigmas = model_config.model_wrap.get_sigmas(ddim_steps)
                         alpha_mask_t = None
                         if alpha_mask is not None and init_image is not None:
                             print('alpha_mask.shape', alpha_mask.shape)
@@ -1224,7 +1235,8 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                     print('using predicted noise')
                                     rand_noise = torch.randn_like(x0)
                                     rec_noise = find_noise_for_image_sigma_adjustment(init_latent=rec_frame_latent, prompt=rec_prompt, image_conditioning=depth_cond, cfg_scale=scale, steps=ddim_steps,
-                                                                                      frame_num=frame_num)
+                                                                                      frame_num=frame_num, main_config=config, video_config=video_config, content_config=content_config,
+                                                                                      model_config=model_config, sd_model=sd_model)
                                     combined_noise = ((1 - config.rec_randomness) * rec_noise + config.rec_randomness * rand_noise) / (
                                             (config.rec_randomness ** 2 + (1 - config.rec_randomness) ** 2) ** 0.5)
                                     noise = combined_noise - (x0 / sigmas[0])
@@ -1248,7 +1260,8 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                 print('using predicted noise')
                                 rand_noise = torch.randn_like(x0)
                                 rec_noise = find_noise_for_image_sigma_adjustment(init_latent=rec_frame_latent, prompt=rec_prompt, image_conditioning=depth_cond, cfg_scale=scale, steps=ddim_steps,
-                                                                                  frame_num=frame_num)
+                                                                                  frame_num=frame_num, main_config=config, video_config=video_config, content_config=content_config,
+                                                                                      model_config=model_config, sd_model=sd_model)
                                 combined_noise = ((1 - config.rec_randomness) * rec_noise + config.rec_randomness * rand_noise) / (
                                         (config.rec_randomness ** 2 + (1 - config.rec_randomness) ** 2) ** 0.5)
                                 x = combined_noise  # - (x0 / sigmas[0])
@@ -1275,11 +1288,11 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                         scale_raw_sample = False
                         if scale_raw_sample:
                             m = x_samples_ddim.mean()
-                            x_samples_ddim -= m;
+                            x_samples_ddim -= m
                             r = (x_samples_ddim.max() - x_samples_ddim.min()) / 2
 
                             x_samples_ddim /= r
-                            x_samples_ddim += m;
+                            x_samples_ddim += m
                             if VERBOSE: printf('x_samples_ddim scaled', x_samples_ddim.min(), x_samples_ddim.max(), x_samples_ddim.std(), x_samples_ddim.mean())
 
                         all_samples.append(x_samples_ddim)

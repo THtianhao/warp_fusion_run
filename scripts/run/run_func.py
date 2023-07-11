@@ -23,9 +23,12 @@ import torchvision.transforms.functional as TF
 
 from modules.devices import device
 from scripts.captioning_process.generate_key_frame import get_caption
+from scripts.clip_process.clip_config import ClipConfig
+from scripts.content_ware_process.content_aware_config import ContentAwareConfig
 from scripts.lora_embedding.lora_embedding_fun import get_loras_weights_for_frame, load_loras
+from scripts.model_process.model_config import ModelConfig
 from scripts.refrerence_control_processor.reference_config import ReferenceConfig
-from scripts.run.sd_function import match_color_var
+from scripts.run.sd_function import match_color_var, run_sd
 from scripts.settings.main_config import MainConfig
 from scripts.settings.setting import batch_name, batchFolder, side_x, side_y
 from scripts.utils.env import root_dir
@@ -41,7 +44,10 @@ diffusion_sampling_mode = 'ddim'
 
 def do_run(main_config: MainConfig,
            video_config: VideoConfig,
-           reference_config: ReferenceConfig,
+           content_config: ContentAwareConfig,
+           model_config: ModelConfig,
+           ref_config: ReferenceConfig,
+           clip_config: ClipConfig,
            sd_model):
     global blend_json_schedules, diffusion_model
     blend_json_schedules = main_config.blend_json_schedules
@@ -359,13 +365,13 @@ def do_run(main_config: MainConfig,
                     cond_image = f'{video_config.condVideoFramesFolder}/{frame_num + 1:06}.jpg'
 
                 ref_image = None
-                if reference_config.reference_source == 'init':
+                if ref_config.reference_source == 'init':
                     ref_image = f'{video_config.videoFramesFolder}/{frame_num + 1:06}.jpg'
-                if reference_config.reference_source == 'stylized':
+                if ref_config.reference_source == 'stylized':
                     ref_image = init_image
-                if reference_config.reference_source == 'prev_frame':
+                if ref_config.reference_source == 'prev_frame':
                     ref_image = f'{batchFolder}/{args.batch_name}({args.batchNum})_{frame_num - 1:06}.png'
-                if reference_config.reference_source == 'color_video':
+                if ref_config.reference_source == 'color_video':
                     if os.path.exists(f'{video_config.colorVideoFramesFolder}/{frame_num + 1:06}.jpg'):
                         ref_image = f'{video_config.colorVideoFramesFolder}/{frame_num + 1:06}.jpg'
                     elif os.path.exists(f'{video_config.colorVideoFramesFolder}/{1:06}.jpg'):
@@ -472,6 +478,13 @@ def do_run(main_config: MainConfig,
                                                    cond_image=cond_image,
                                                    cfg_scale=cfg_scale,
                                                    image_scale=image_scale,
+                                                   config=main_config,
+                                                   video_config=video_config,
+                                                   ref_config=ref_config,
+                                                   model_config=model_config,
+                                                   content_config=content_config,
+                                                   clip_config=clip_config,
+                                                   sd_model=sd_model,
                                                    cond_fn=None,
                                                    init_grad_img=init_grad_img,
                                                    consistency_mask=consistency_mask,
@@ -1188,4 +1201,3 @@ def img2tensor(img, warp_interp, size=None):
     img = img.convert('RGB')
     if size: img = img.resize(size, warp_interp)
     return torch.from_numpy(np.array(img)).permute(2, 0, 1).float()[None, ...].cuda()
-

@@ -146,13 +146,13 @@ def load_sd_and_k_fusion(config: ModelConfig):
     # sd_model.first_stage_model = torch.compile(sd_model.first_stage_model)
     # sd_model.model = torch.compile(sd_model.model)
     if sd_model.parameterization == "v":
-        model_wrap = k_diffusion.external.CompVisVDenoiser(sd_model, quantize=quantize)
+        config.model_wrap = k_diffusion.external.CompVisVDenoiser(sd_model, quantize=quantize)
     else:
-        model_wrap = k_diffusion.external.CompVisDenoiser(sd_model, quantize=quantize)
-    config.sigma_min, config.sigma_max = model_wrap.sigmas[0].item(), model_wrap.sigmas[-1].item()
-    config.model_wrap_cfg = CFGDenoiser(model_wrap)
+        config.model_wrap = k_diffusion.external.CompVisDenoiser(sd_model, quantize=quantize)
+    config.sigma_min, config.sigma_max = config.model_wrap.sigmas[0].item(), config.model_wrap.sigmas[-1].item()
+    config.model_wrap_cfg = CFGDenoiser(config.model_wrap)
     if model_version == 'v1_instructpix2pix':
-        config.model_wrap_cfg = InstructPix2PixCFGDenoiser(model_wrap)
+        config.model_wrap_cfg = InstructPix2PixCFGDenoiser(config.model_wrap)
     try:
         sd_model.model.diffusion_model.forward = cldm_forward
     except Exception as e:
