@@ -1,5 +1,6 @@
 import subprocess
 import os
+import sys
 from scripts.utils.cmd import install_requirement, pipi, pipie, pipis, gitclone, unpip
 from scripts.utils.nvidia_utils import print_card
 from scripts.utils.env import root_path
@@ -37,9 +38,11 @@ if __name__ == "__main__":
             print('pulling a fresh k-diffusion')
             os.chdir(f'./k-diffusion')
             subprocess.run(['git', 'pull'])
+            pipie('.')
             os.chdir(f'../')
     except:
         pass
+    pipie('./k-diffusion')
     pipis([
         'Pillow==9.0.0',
         'ipywidgets==7.7.1',
@@ -61,7 +64,6 @@ if __name__ == "__main__":
         'lpips',
         'keras',
     ])
-    import sys
     sys.path.append('./k-diffusion')
     pipis([
         'wget', 'webdataset', 'open_clip_torch', 'opencv-python==4.5.5.64',
