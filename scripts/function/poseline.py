@@ -10,6 +10,8 @@ import math
 from PIL import ImageOps
 import requests
 import json
+
+from lpips import lpips
 from torch import nn
 from torch.nn import functional as F
 import torchvision.transforms as T
@@ -22,6 +24,8 @@ from scripts.settings.no_gui_config import *
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print('Using device:', DEVICE)
 device = DEVICE  # At least one of the modules expects this name..
+normalize = T.Normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
+lpips_model = lpips.LPIPS(net='vgg').to(device)
 
 def append_dims(x, n):
     return x[(Ellipsis, *(None,) * (n - x.ndim))]

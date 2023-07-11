@@ -1,38 +1,17 @@
 # @title 1.6 init main sd run function, cond_fn, color matching for SD
 import os
-
-from lpips import lpips
-import torchvision.transforms as T
-
-from scripts.model_process.model_env import device
 from scripts.utils.env import root_dir, root_path
-
-init_latent = None
-target_embed = None
+import sys
+import cv2
+from python_color_transfer.color_transfer import ColorTransfer, Regrain
+from tqdm.auto import trange
+from kornia import augmentation as KA
 try:
     import Image
 except:
     from PIL import Image
 
-mask_result = False
 early_stop = 0
-inpainting_stop = 0
-warp_interp = Image.BILINEAR
-
-import sys
-import cv2
-
-os.chdir(root_dir)
-sys.path.append(f'{root_dir}/python-color-transfer')
-os.chdir(f"{root_dir}/python-color-transfer")
-print(sys.path)
-
-from python_color_transfer.color_transfer import ColorTransfer, Regrain
-
-os.chdir(root_path)
-from tqdm.auto import trange
-from kornia import augmentation as KA
-
 aug = KA.RandomAffine(0, (1 / 14, 1 / 14), p=1, padding_mode='border')
 
 PT = ColorTransfer()
@@ -159,15 +138,4 @@ def get_premature_sigma_min(steps: int, sigma_max: float, sigma_min_nominal: flo
     return sigma_min
 
 
-import contextlib
-
-none_context = contextlib.nullcontext()
-
 pred_noise = None
-
-diffusion_model = "stable_diffusion"
-
-diffusion_sampling_mode = 'ddim'
-
-normalize = T.Normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
-lpips_model = lpips.LPIPS(net='vgg').to(device)
