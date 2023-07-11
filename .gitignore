@@ -9,3 +9,5 @@ python-color-transfer/
 src/
 stablediffusion/
 .idea/
+__pycache__/
+videoFrames/
