@@ -34,6 +34,7 @@ from scripts.settings.setting import batch_name, batchFolder, side_x, side_y
 from scripts.utils.env import root_dir
 from scripts.video_process.color_transfor_func import warp, warp_lat, k_means_warp, load_cc, fit, get_flow
 from scripts.video_process.video_config import VideoConfig
+from scripts.model_process.mode_func import get_image_embed, spherical_dist_loss
 
 stop_on_next_loop = False  # Make sure GPU memory doesn't get corrupted from cancelling the run mid-way through, allow a full frame to complete
 TRANSLATION_SCALE = 1.0 / 200.
@@ -1090,7 +1091,7 @@ def save_settings(main_config: MainConfig, skip_save=False):
         'add_noise_to_latent': main_config.add_noise_to_latent,
         'noise_upscale_ratio': main_config.noise_upscale_ratio,
         'fixed_seed': main_config.fixed_seed,
-        'init_latent_fn': main_config.init_latent_fn.__name__,
+        'init_latent_fn': spherical_dist_loss.__name__,
         'value_threshold': main_config.value_threshold,
         'distance_threshold': main_config.distance_threshold,
         'masked_guidance': main_config.masked_guidance,

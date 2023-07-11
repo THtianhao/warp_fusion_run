@@ -5,7 +5,6 @@ from PIL import Image
 
 from k_diffusion.sampling import sample_euler
 from python_color_transfer.color_transfer import ColorTransfer
-from scripts.model_process.mode_func import spherical_dist_loss
 from scripts.settings.setting import steps
 from scripts.utils.env import root_dir
 
@@ -357,7 +356,6 @@ class MainConfig:
     add_noise_to_latent = True  # add noise to latent vector during latent guidance
     noise_upscale_ratio = 1  # noise upscale ratio for latent noise during latent guidance
     guidance_use_start_code = True  # fix latent noise across steps during latent guidance
-    init_latent_fn = spherical_dist_loss  # function to compute latent distance, l1_loss, rmse, spherical_dist_loss
     use_scale = False  # use gradient scaling (for mixed precision)
     g_invert_mask = False  # invert guidance mask
 

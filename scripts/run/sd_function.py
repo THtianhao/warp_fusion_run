@@ -170,7 +170,7 @@ def sd_cond_fn(x, t, denoised, init_image_sd, init_latent, init_scale,
             # compare init image latent with denoised latent
             # print(denoised.shape, init_latent.shape)
 
-            loss += main_config.init_latent_fn(denoised, init_latent).sum() * init_latent_scale
+            loss += spherical_dist_loss(denoised, init_latent).sum() * init_latent_scale
 
         if main_config.sat_scale > 0:
             loss += torch.abs(denoised_img - denoised_img.clamp(min=-1, max=1)).mean()
@@ -457,7 +457,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'add_noise_to_latent': add_noise_to_latent,
         'noise_upscale_ratio': main_config.noise_upscale_ratio,
         'fixed_seed': main_config.fixed_seed,
-        'init_latent_fn': main_config.init_latent_fn.__name__,
+        'init_latent_fn': spherical_dist_loss.__name__,
         'value_threshold': main_config.value_threshold,
         'distance_threshold': main_config.distance_threshold,
         'masked_guidance': main_config.masked_guidance,
