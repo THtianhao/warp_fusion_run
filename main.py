@@ -1,7 +1,11 @@
+import os
+import sys
+
 from scripts.captioning_process.captioning_config import CaptioningConfig
 from scripts.captioning_process.generate_key_frame import generate_key_frame
 from scripts.content_ware_process.content_aware_config import ContentAwareConfig
 from scripts.content_ware_process.content_aware_scheduing import content_aware
+from scripts.utils.env import root_dir
 from scripts.video_process.video_config import VideoConfig
 from scripts.clip_process.clip_config import ClipConfig
 from scripts.clip_process.clip_process import get_clip_model_size
@@ -13,6 +17,8 @@ from scripts.video_process.video_flow import extra_video_frame, mask_video, down
 from scripts.video_process.generate_optical_func import generate_optical_flow
 
 if __name__ == "__main__":
+    os.chdir(root_dir)
+    sys.path.append('./python-color-transfer')
     video_config = VideoConfig()
     video_config.video_init_path = "./res/dance.mp4"
     # bean.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
