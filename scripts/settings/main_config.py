@@ -418,3 +418,17 @@ class MainConfig:
     retain_overwritteon_frames = False  # @param{type: 'boolean'}
 
     args = None
+
+    apply_depth = None
+    apply_canny = None
+    apply_mlsd = None
+    apply_hed = None
+    apply_openpose = None
+    apply_seg = None
+    apply_normal = None
+    apply_softedge = None
+    apply_scribble = None
+    apply_shuffle = None
+    apply_lineart = None
+    apply_lineart_anime = None
+    loaded_controlnets = {}

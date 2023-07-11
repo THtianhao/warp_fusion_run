@@ -118,8 +118,8 @@ def load_sd_and_k_fusion(config: ModelConfig):
             smallpath = config.small_controlnet_model_path
         else:
             smallpath = None
-        config = OmegaConf.load(f"{root_dir}/ControlNet/models/cldm_v15.yaml")
-        sd_model = load_model_from_config(config=config,
+        load_config = OmegaConf.load(f"{root_dir}/ControlNet/models/cldm_v15.yaml")
+        sd_model = load_model_from_config(config=load_config,
                                           ckpt=config.model_path, vae_ckpt=vae_ckpt,  # controlnet=smallpath,
                                           verbose=True)
 
@@ -149,10 +149,10 @@ def load_sd_and_k_fusion(config: ModelConfig):
         model_wrap = k_diffusion.external.CompVisVDenoiser(sd_model, quantize=quantize)
     else:
         model_wrap = k_diffusion.external.CompVisDenoiser(sd_model, quantize=quantize)
-    sigma_min, sigma_max = model_wrap.sigmas[0].item(), model_wrap.sigmas[-1].item()
-    model_wrap_cfg = CFGDenoiser(model_wrap)
+    config.sigma_min, config.sigma_max = model_wrap.sigmas[0].item(), model_wrap.sigmas[-1].item()
+    config.model_wrap_cfg = CFGDenoiser(model_wrap)
     if model_version == 'v1_instructpix2pix':
-        model_wrap_cfg = InstructPix2PixCFGDenoiser(model_wrap)
+        config.model_wrap_cfg = InstructPix2PixCFGDenoiser(model_wrap)
     try:
         sd_model.model.diffusion_model.forward = cldm_forward
     except Exception as e:

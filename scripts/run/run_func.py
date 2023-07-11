@@ -1188,3 +1188,4 @@ def img2tensor(img, warp_interp, size=None):
     img = img.convert('RGB')
     if size: img = img.resize(size, warp_interp)
     return torch.from_numpy(np.array(img)).permute(2, 0, 1).float()[None, ...].cuda()
+

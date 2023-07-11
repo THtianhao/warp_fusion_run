@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 @dataclass
 class ModelConfig:
     model_path = "d:/models/revAnimated_v122.safetensors"  # @param {'type':'string'}
@@ -13,3 +14,6 @@ class ModelConfig:
     force_download = False  # @param {'type':'boolean'}
     controlnet_models_dir = "d:/models/ControlNet"  # @param {'type':'string'}
     sd_mode = None
+    model_wrap_cfg = None
+    sigma_min = None
+    sigma_max = None

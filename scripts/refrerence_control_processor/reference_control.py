@@ -34,7 +34,6 @@ def varname(p):
 def reference_control(config: ReferenceConfig, sd_model, reference_latent):
     outer = sd_model.model.diffusion_model
 
-    reference_active = config.reference_weight > 0 and config.use_reference and config.reference_source != 'None'
 
     # Attention Injection by Lvmin Zhang
     # https://github.com/lllyasviel
@@ -113,7 +112,7 @@ def reference_control(config: ReferenceConfig, sd_model, reference_latent):
         x = self.ff(self.norm3(x)) + x
         return x
 
-    if reference_active:
+    if config.reference_active:
         # outer = sd_model.model.diffusion_model
         try:
             outer.forward = outer.original_forward

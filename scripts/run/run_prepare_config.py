@@ -19,6 +19,7 @@ from modules import sd_hijack
 import copy
 
 from scripts.lora_embedding.lora_embedding_fun import inject_lora, split_lora_from_prompts
+from scripts.run.run_func import diffusion_sampling_mode
 from scripts.settings.setting import batch_name, batchFolder, steps, width_height, clip_guidance_scale, tv_scale, range_scale, cutn_batches, init_image, init_scale, skip_steps, side_x, side_y, \
     skip_augs
 from scripts.utils.env import root_dir
@@ -46,13 +47,6 @@ def run_prepare_config(main_config: MainConfig,
                        lora_embedding_config: LoraEmbeddingConfig,
                        content_aware_config: ContentAwareConfig,
                        sd_model):
-    apply_depth = None
-    apply_canny = None
-    apply_mlsd = None
-    apply_hed = None
-    apply_openpose = None
-    apply_seg = None
-    loaded_controlnets = {}
     torch.cuda.empty_cache()
     gc.collect()
     sd_model.control_scales = ([1] * 13)
@@ -78,12 +72,12 @@ def run_prepare_config(main_config: MainConfig,
                         print(f'Downloaded small {controlnet} model.')
 
         print('Loading ControlNet Models')
-        loaded_controlnets = {}
+        main_config.loaded_controlnets = {}
         for controlnet in main_config.controlnet_multimodel.keys():
             controlnet_settings = main_config.controlnet_multimodel[controlnet]
             weight = controlnet_settings["weight"]
             if weight != 0:
-                loaded_controlnets[controlnet] = copy.deepcopy(sd_model.control_model)
+                main_config.loaded_controlnets[controlnet] = copy.deepcopy(sd_model.control_model)
                 small_url = control_model_urls[controlnet]
                 local_filename = small_url.split('/')[-1]
                 small_controlnet_model_path = f"{model_config.controlnet_models_dir}/{local_filename}"
@@ -111,8 +105,8 @@ def run_prepare_config(main_config: MainConfig,
                     del pl_sd
 
                     gc.collect()
-                    m, u = loaded_controlnets[controlnet].load_state_dict(sd, strict=True)
-                    loaded_controlnets[controlnet].half()
+                    m, u = main_config.loaded_controlnets[controlnet].load_state_dict(sd, strict=True)
+                    main_config.loaded_controlnets[controlnet].half()
                 else:
                     print('Small controlnet model not found in path but specified in settings. Please adjust settings or check controlnet path.')
                     sys.exit(0)
@@ -123,78 +117,78 @@ def run_prepare_config(main_config: MainConfig,
         if main_config.control_sd15_depth_detector == 'Midas' or "control_sd15_normal" in controlnet_keys:
             from annotator.midas import MidasDetector
 
-            apply_depth = MidasDetector()
+            main_config.apply_depth = MidasDetector()
             print('Loaded MidasDetector')
         if main_config.control_sd15_depth_detector == 'Zoe':
             from annotator.zoe import ZoeDetector
 
-            apply_depth = ZoeDetector()
+            main_config.apply_depth = ZoeDetector()
             print('Loaded ZoeDetector')
 
     if "control_sd15_normalbae" in controlnet_keys:
         from annotator.normalbae import NormalBaeDetector
 
-        apply_normal = NormalBaeDetector()
+        main_config.apply_normal = NormalBaeDetector()
         print('Loaded NormalBaeDetector')
     if 'control_sd15_canny' in controlnet_keys:
         from annotator.canny import CannyDetector
 
-        apply_canny = CannyDetector()
+        main_config.apply_canny = CannyDetector()
         print('Loaded CannyDetector')
     if 'control_sd15_softedge' in controlnet_keys:
         if main_config.control_sd15_softedge_detector == 'HED':
             from annotator.hed import HEDdetector
 
-            apply_softedge = HEDdetector()
+            main_config.apply_softedge = HEDdetector()
             print('Loaded HEDdetector')
         if main_config.control_sd15_softedge_detector == 'PIDI':
             from annotator.pidinet import PidiNetDetector
 
-            apply_softedge = PidiNetDetector()
+            main_config.apply_softedge = PidiNetDetector()
             print('Loaded PidiNetDetector')
     if 'control_sd15_scribble' in controlnet_keys:
 
         if main_config.control_sd15_scribble_detector == 'HED':
             from annotator.hed import HEDdetector
 
-            apply_scribble = HEDdetector()
+            main_config.apply_scribble = HEDdetector()
             print('Loaded HEDdetector')
         if main_config.control_sd15_scribble_detector == 'PIDI':
             from annotator.pidinet import PidiNetDetector
 
-            apply_scribble = PidiNetDetector()
+            main_config.apply_scribble = PidiNetDetector()
             print('Loaded PidiNetDetector')
 
     if "control_sd15_mlsd" in controlnet_keys:
         from annotator.mlsd import MLSDdetector
 
-        apply_mlsd = MLSDdetector()
+        main_config.apply_mlsd = MLSDdetector()
         print('Loaded MLSDdetector')
     if "control_sd15_openpose" in controlnet_keys:
         from annotator.openpose import OpenposeDetector
 
-        apply_openpose = OpenposeDetector()
+        main_config.apply_openpose = OpenposeDetector()
         print('Loaded OpenposeDetector')
     if "control_sd15_seg" in controlnet_keys:
         if main_config.control_sd15_seg_detector == 'Seg_OFCOCO':
             from annotator.oneformer import OneformerCOCODetector
 
-            apply_seg = OneformerCOCODetector()
+            main_config.apply_seg = OneformerCOCODetector()
             print('Loaded OneformerCOCODetector')
         elif main_config.control_sd15_seg_detector == 'Seg_OFADE20K':
             from annotator.oneformer import OneformerADE20kDetector
 
-            apply_seg = OneformerADE20kDetector()
+            main_config.apply_seg = OneformerADE20kDetector()
             print('Loaded OneformerADE20kDetector')
         elif main_config.control_sd15_seg_detector == 'Seg_UFADE20K':
             from annotator.uniformer import UniformerDetector
 
-            apply_seg = UniformerDetector()
+            main_config.apply_seg = UniformerDetector()
             print('Loaded UniformerDetector')
     if "control_sd15_shuffle" in controlnet_keys:
         from annotator.shuffle import ContentShuffleDetector
 
-        apply_shuffle = ContentShuffleDetector()
+        main_config.apply_shuffle = ContentShuffleDetector()
         print('Loaded ContentShuffleDetector')
 
     # if "control_sd15_ip2p" in controlnet_keys:
@@ -206,18 +200,13 @@ def run_prepare_config(main_config: MainConfig,
     if "control_sd15_lineart" in controlnet_keys:
         from annotator.lineart import LineartDetector
 
-        apply_lineart = LineartDetector()
+        main_config.apply_lineart = LineartDetector()
         print('Loaded LineartDetector')
     if "control_sd15_lineart_anime" in controlnet_keys:
         from annotator.lineart_anime import LineartAnimeDetector
 
-        apply_lineart_anime = LineartAnimeDetector()
+        main_config.apply_lineart_anime = LineartAnimeDetector()
         print('Loaded LineartAnimeDetector')
-
-    def deflicker_loss(processed2, processed1, raw1, raw2, criterion1, criterion2):
-        raw_diff = criterion1(raw2, raw1)
-        proc_diff = criterion1(processed1, processed2)
-        return criterion2(raw_diff, proc_diff)
 
     unload()
     sd_model.cuda()
@@ -279,11 +268,9 @@ def run_prepare_config(main_config: MainConfig,
 
     if main_config.warp_towards_init != 'off':
         if video_config.flow_lq:
-            raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_half.jit').eval()
+            main_config.raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_half.jit').eval()
         else:
-            raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_fp32.jit').eval()
-
-
+            main_config.raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_fp32.jit').eval()
 
     def move_files(start_num, end_num, old_folder, new_folder):
         for i in range(start_num, end_num):
