@@ -16,6 +16,7 @@ model_urls = {
     "sd_v1_5": "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors",
     "dpt_hybrid-midas-501f0c75": "https://github.com/intel-isl/DPT/releases/download/1_0/dpt_hybrid-midas-501f0c75.pt"
 }
+config_path = ''
 
 # https://huggingface.co/lllyasviel/ControlNet-v1-1/tree/main
 control_model_urls = {
@@ -65,7 +66,6 @@ control_helpers = {
     "control_sd15_temporalnet": None,
     "control_sd15_face": None
 }
-
 if model_version == 'v1_instructpix2pix':
     config_path = f"{root_dir}/stablediffusion/configs/stable-diffusion/v1_instruct_pix2pix.yaml"
 vae_ckpt = ''  # @param {'type':'string'}
@@ -74,7 +74,6 @@ load_to = 'gpu'  # @param ['cpu','gpu']
 if load_to == 'gpu': load_to = 'cuda'
 quantize = True  # @param {'type':'boolean'}
 no_half_vae = False  # @param {'type':'boolean'}
-
 
 import gc
 
