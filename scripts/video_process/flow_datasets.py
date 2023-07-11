@@ -4,8 +4,7 @@ import numpy as np
 import torch
 from PIL import Image
 
-from scripts.function.poseline import normalize
-from scripts.settings.setting import width_height, warp_interp
+from scripts.settings.setting import width_height, warp_interp, normalize
 from scripts.video_process.Input_padder import InputPadder
 
 class flowDataset():

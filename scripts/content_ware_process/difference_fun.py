@@ -1,7 +1,7 @@
 #@title Create schedules from frame difference
 import numpy as np
 
-from scripts.function.poseline import get_scheduled_arg
+from scripts.run.run_func import get_scheduled_arg
 
 def adjust_schedule(diff, normal_val, new_scene_val, thresh, falloff_frames, sched=None):
   diff_array = np.array(diff)
