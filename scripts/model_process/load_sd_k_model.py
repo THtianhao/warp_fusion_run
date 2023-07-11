@@ -10,7 +10,7 @@ import torch
 from guided_diffusion.nn import timestep_embedding
 from scripts.model_process.CFGDenoiser import CFGDenoiser
 from scripts.model_process.instruct_pix2_cfg_denoiser import InstructPix2PixCFGDenoiser
-from scripts.model_process.mode_func import cldm_forward, cat8
+from scripts.model_process.mode_func import cat8
 from scripts.model_process.model_config import ModelConfig
 from scripts.model_process.model_env import model_version, model_urls, control_model_urls, control_helpers, load_model_from_config, vae_ckpt, config_path, quantize
 from scripts.utils.env import root_dir
@@ -180,7 +180,7 @@ def load_sd_and_k_fusion(config: ModelConfig):
 
             h = h.type(x.dtype)
             return self.out(h)
-        
+
         sd_model.model.diffusion_model.forward = cldm_forward
     except Exception as e:
         print(e)
