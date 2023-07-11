@@ -4,7 +4,8 @@ import gc
 import pathlib
 import sys
 import os
-from modules.sd_samplers import CFGDenoiser
+
+from scripts.model_process.CFGDenoiser import CFGDenoiser
 from scripts.model_process.instruct_pix2_cfg_denoiser import InstructPix2PixCFGDenoiser
 from scripts.model_process.mode_func import cldm_forward
 from scripts.model_process.model_config import ModelConfig
