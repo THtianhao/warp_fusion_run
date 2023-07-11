@@ -2,7 +2,7 @@ venv/
 BLIP/
 Real-ESRGAN/
 ResizeRight/
-controlnet/
+ControlNet/
 guided-diffusion/
 k-diffusion/
 python-color-transfer/
