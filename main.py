@@ -19,19 +19,20 @@ from scripts.video_process.video_flow import extra_video_frame, mask_video, down
 from scripts.video_process.generate_optical_func import generate_optical_flow
 
 if __name__ == "__main__":
-    video_config.video_init_path = "./res/dance.mp4"
-    # bean.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
+    video_config = VideoConfig()
+    # video_config.video_init_path = "./res/dance.mp4"
+    video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
     extra_video_frame(video_config)
-    mask_video(video_config)
-    download_reference_repository(video_config.animation_mode)
-    generate_optical_flow(video_config)
-    model_config = ()
-    load_sd_and_k_fusion(model_config)
-    tail_vae_config = TiledVaeConfig()
-    tiled_vae(tail_vae_config, model_config.sd_mode)
-    clip_config = ClipConfig()
-    get_clip_model_size(clip_config)
-    content_aware_config = ContentAwareConfig()
-    content_aware(content_aware_config, video_config.videoFramesFolder)
-    captioning_config = CaptioningConfig()
-    generate_key_frame(captioning_config, video_config.videoFramesFolder)
+    # mask_video(video_config)
+    # download_reference_repository(video_config.animation_mode)
+    # generate_optical_flow(video_config)
+    # model_config = ()
+    # load_sd_and_k_fusion(model_config)
+    # tail_vae_config = TiledVaeConfig()
+    # tiled_vae(tail_vae_config, model_config.sd_mode)
+    # clip_config = ClipConfig()
+    # get_clip_model_size(clip_config)
+    # content_aware_config = ContentAwareConfig()
+    # content_aware(content_aware_config, video_config.videoFramesFolder)
+    # captioning_config = CaptioningConfig()
+    # generate_key_frame(captioning_config, video_config.videoFramesFolder)
