@@ -1,8 +1,11 @@
 # @title 1.6 init main sd run function, cond_fn, color matching for SD
+import os
+
 from lpips import lpips
 import torchvision.transforms as T
 
 from scripts.model_process.model_env import device
+from scripts.utils.env import root_dir, root_path
 
 init_latent = None
 target_embed = None
@@ -18,7 +21,9 @@ warp_interp = Image.BILINEAR
 
 import sys
 import cv2
+os.chdir(f"{root_dir}/python-color-transfer")
 from python_color_transfer.color_transfer import ColorTransfer, Regrain
+os.chdir(root_path)
 from tqdm.auto import trange
 from kornia import augmentation as KA
 

@@ -26,7 +26,7 @@ if __name__ == "__main__":
     mask_video(video_config)
     download_reference_repository(video_config.animation_mode)
     generate_optical_flow(video_config)
-    model_config = ModelConfig()
+    model_config = ()
     load_sd_and_k_fusion(model_config)
     tail_vae_config = TiledVaeConfig()
     tiled_vae(tail_vae_config, model_config.sd_mode)
