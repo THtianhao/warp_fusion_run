@@ -4,7 +4,7 @@ import torch
 from PIL import Image
 
 from k_diffusion.sampling import sample_euler
-from scripts.run.sd_function import PT
+from python_color_transfer.color_transfer import ColorTransfer
 from scripts.model_process.mode_func import spherical_dist_loss
 from scripts.settings.setting import steps
 from scripts.utils.env import root_dir
@@ -152,20 +152,20 @@ class MainConfig:
     # @markdown in offset mode, specifies the offset back from current frame, and 0 means current frame. In non-offset mode specifies the fixed frame number. 0 means the 1st frame.
     colormatch_offset = 0  # @param {'type':'number'}
     colormatch_method = 'PDF'  # @param ['LAB', 'PDF', 'mean']
-    colormatch_method_fn = PT.lab_transfer
+    colormatch_method_fn = ColorTransfer.lab_transfer
     if colormatch_method == 'LAB':
-        colormatch_method_fn = PT.pdf_transfer
+        colormatch_method_fn = ColorTransfer.pdf_transfer
     if colormatch_method == 'mean':
-        colormatch_method_fn = PT.mean_std_transfer
+        colormatch_method_fn = ColorTransfer.mean_std_transfer
     # @markdown Match source frame's texture
     colormatch_regrain = False  # @param {'type':'boolean'}
     warp_mode = 'use_image'  # @param ['use_latent', 'use_image']
     warp_towards_init = 'off'  # @param ['stylized', 'off']
-    if warp_towards_init != 'off':
-        if flow_lq:
-            raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_half.jit').eval()
-        else:
-            raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_fp32.jit').eval()
+    # if warp_towards_init != 'off':
+    #     if flow_lq:
+    #         raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_half.jit').eval()
+    #     else:
+    #         raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_fp32.jit').eval()
 
     cond_image_src = 'init'  # @param ['init', 'stylized']
     # DD-style losses, renders 2 times slower (!) and more memory intensive :D
