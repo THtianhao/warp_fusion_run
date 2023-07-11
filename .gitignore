@@ -8,6 +8,8 @@ k-diffusion/
 python-color-transfer/
 src/
 stablediffusion/
+WarpFusion/
+flow_tools/
 .idea/
 __pycache__/
 videoFrames/

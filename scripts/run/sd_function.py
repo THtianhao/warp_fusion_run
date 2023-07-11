@@ -21,6 +21,9 @@ warp_interp = Image.BILINEAR
 
 import sys
 import cv2
+
+os.chdir(root_dir)
+sys.path.append('./python-color-transfer')
 os.chdir(f"{root_dir}/python-color-transfer")
 from python_color_transfer.color_transfer import ColorTransfer, Regrain
 os.chdir(root_path)
