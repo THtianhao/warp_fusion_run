@@ -145,28 +145,7 @@ def cat8(tensors, *args, **kwargs):
 
     return torch.cat(tensors, *args, **kwargs)
 
-def cldm_forward(x, timesteps=None, context=None, control=None, only_mid_control=False, self=sd_model.model.diffusion_model, **kwargs):
-    hs = []
-    with torch.no_grad():
-        t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
-        emb = self.time_embed(t_emb)
-        h = x.type(self.dtype)
-        for module in self.input_blocks:
-            h = module(h, emb, context)
-            hs.append(h)
-        h = self.middle_block(h, emb, context)
 
-    if control is not None: h += control.pop()
-
-    for i, module in enumerate(self.output_blocks):
-        if only_mid_control or control is None:
-            h = cat8([h, hs.pop()], dim=1)
-        else:
-            h = cat8([h, hs.pop() + control.pop()], dim=1)
-        h = module(h, emb, context)
-
-    h = h.type(x.dtype)
-    return self.out(h)
 
 def save_loaded_mode(save_model_pickle, save_folder, sd_model):
     # @title Save loaded model

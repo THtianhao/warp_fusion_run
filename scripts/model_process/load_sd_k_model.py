@@ -5,9 +5,12 @@ import pathlib
 import sys
 import os
 
+import torch
+
+from guided_diffusion.nn import timestep_embedding
 from scripts.model_process.CFGDenoiser import CFGDenoiser
 from scripts.model_process.instruct_pix2_cfg_denoiser import InstructPix2PixCFGDenoiser
-from scripts.model_process.mode_func import cldm_forward
+from scripts.model_process.mode_func import cldm_forward, cat8
 from scripts.model_process.model_config import ModelConfig
 from scripts.model_process.model_env import model_version, model_urls, control_model_urls, control_helpers, load_model_from_config, vae_ckpt, config_path, quantize
 from scripts.utils.env import root_dir
@@ -155,8 +158,32 @@ def load_sd_and_k_fusion(config: ModelConfig):
     if model_version == 'v1_instructpix2pix':
         config.model_wrap_cfg = InstructPix2PixCFGDenoiser(config.model_wrap)
     try:
+        def cldm_forward(x, timesteps=None, context=None, control=None, only_mid_control=False, self=sd_model.model.diffusion_model, **kwargs):
+            hs = []
+            with torch.no_grad():
+                t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
+                emb = self.time_embed(t_emb)
+                h = x.type(self.dtype)
+                for module in self.input_blocks:
+                    h = module(h, emb, context)
+                    hs.append(h)
+                h = self.middle_block(h, emb, context)
+
+            if control is not None: h += control.pop()
+
+            for i, module in enumerate(self.output_blocks):
+                if only_mid_control or control is None:
+                    h = cat8([h, hs.pop()], dim=1)
+                else:
+                    h = cat8([h, hs.pop() + control.pop()], dim=1)
+                h = module(h, emb, context)
+
+            h = h.type(x.dtype)
+            return self.out(h)
+        
         sd_model.model.diffusion_model.forward = cldm_forward
     except Exception as e:
         print(e)
         # pass
     config.sd_mode = sd_model
+
