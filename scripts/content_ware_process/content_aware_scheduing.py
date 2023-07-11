@@ -9,7 +9,7 @@ import torch
 from PIL import Image
 
 from scripts.content_ware_process.content_aware_config import ContentAwareConfig
-from scripts.run.sd_function import normalize, lpips_model
+from scripts.function.poseline import normalize, lpips_model
 
 def load_img_lpips(path, size=(512, 512)):
     image = Image.open(path).convert("RGB")

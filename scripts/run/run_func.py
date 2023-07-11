@@ -25,7 +25,7 @@ from modules.devices import device
 from scripts.captioning_process.generate_key_frame import get_caption
 from scripts.lora_embedding.lora_embedding_fun import get_loras_weights_for_frame, load_loras
 from scripts.refrerence_control_processor.reference_config import ReferenceConfig
-from scripts.run.sd_function import match_color_var, run_sd
+from scripts.run.sd_function import match_color_var
 from scripts.settings.main_config import MainConfig
 from scripts.settings.setting import batch_name, batchFolder, side_x, side_y
 from scripts.utils.env import root_dir
