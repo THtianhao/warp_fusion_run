@@ -23,18 +23,21 @@ import sys
 import cv2
 
 os.chdir(root_dir)
-sys.path.append('./python-color-transfer')
+sys.path.append(f'{root_dir}/python-color-transfer')
 os.chdir(f"{root_dir}/python-color-transfer")
+print(sys.path)
+
 from python_color_transfer.color_transfer import ColorTransfer, Regrain
+
 os.chdir(root_path)
 from tqdm.auto import trange
 from kornia import augmentation as KA
 
 aug = KA.RandomAffine(0, (1 / 14, 1 / 14), p=1, padding_mode='border')
 
-
 PT = ColorTransfer()
 RG = Regrain()
+
 
 def match_color_var(stylized_img, raw_img, opacity=1., f=PT.pdf_transfer, regrain=False):
     img_arr_ref = cv2.cvtColor(np.array(stylized_img).round().astype('uint8'), cv2.COLOR_RGB2BGR)
@@ -49,6 +52,7 @@ def match_color_var(stylized_img, raw_img, opacity=1., f=PT.pdf_transfer, regrai
 
     return img_arr_reg
 
+
 # https://gist.githubusercontent.com/trygvebw/c71334dd127d537a15e9d59790f7f5e1/raw/ed0bed6abaf75c0f1b270cf6996de3e07cbafc81/find_noise.py
 
 import numpy as np
@@ -58,12 +62,14 @@ from PIL import Image
 from torch import autocast
 from einops import rearrange, repeat
 
+
 def pil_img_to_torch(pil_img, half=False):
     image = np.array(pil_img).astype(np.float32) / 255.0
     image = rearrange(torch.from_numpy(image), 'h w c -> c h w')
     if half:
         image = image
     return (2.0 * image - 1.0).unsqueeze(0)
+
 
 def pil_img_to_latent(model, img, batch_size=1, device='cuda', half=True):
     init_image = pil_img_to_torch(img, half=half).to(device)
@@ -72,20 +78,24 @@ def pil_img_to_latent(model, img, batch_size=1, device='cuda', half=True):
         return model.get_first_stage_encoding(model.encode_first_stage(init_image))
     return model.get_first_stage_encoding(model.encode_first_stage(init_image))
 
+
 import torch
 from ldm.modules.midas.api import load_midas_transform
 
 midas_tfm = load_midas_transform("dpt_hybrid")
 
+
 def midas_tfm_fn(x):
     x = x = ((x + 1.0) * .5).detach().cpu().numpy()
     return midas_tfm({"image": x})["image"]
+
 
 def pil2midas(pil_image):
     image = np.array(pil_image.convert("RGB"))
     image = torch.from_numpy(image).to(dtype=torch.float32) / 127.5 - 1.0
     image = midas_tfm_fn(image)
     return torch.from_numpy(image[None, ...]).float()
+
 
 def find_noise_for_image(model, x, prompt, steps, cond_scale=0.0, verbose=False, normalize=True):
     with torch.no_grad():
@@ -132,6 +142,7 @@ def find_noise_for_image(model, x, prompt, steps, cond_scale=0.0, verbose=False,
             else:
                 return x
 
+
 # Based on changes suggested by briansemrau in https://github.com/AUTOMATIC1111/stable-diffusion-webui/issues/736
 import hashlib
 
@@ -139,17 +150,14 @@ import hashlib
 # https://github.com/Birch-san/stable-diffusion/blob/693c8a336aa3453d30ce403f48eb545689a679e5/scripts/txt2img_fork.py#L62-L81
 sys.path.append('./k-diffusion')
 
-def get_premature_sigma_min(
-        steps: int,
-        sigma_max: float,
-        sigma_min_nominal: float,
-        rho: float
-) -> float:
-    min_inv_rho = sigma_min_nominal ** (1 / rho)
-    max_inv_rho = sigma_max ** (1 / rho)
+
+def get_premature_sigma_min(steps: int, sigma_max: float, sigma_min_nominal: float, rho: float) -> float:
+    min_inv_rho = sigma_min_nominal**(1 / rho)
+    max_inv_rho = sigma_max**(1 / rho)
     ramp = (steps - 2) * 1 / (steps - 1)
-    sigma_min = (max_inv_rho + ramp * (min_inv_rho - max_inv_rho)) ** rho
+    sigma_min = (max_inv_rho + ramp * (min_inv_rho - max_inv_rho))**rho
     return sigma_min
+
 
 import contextlib
 
