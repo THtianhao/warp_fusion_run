@@ -5,7 +5,6 @@ from scripts.utils.path import createPath
 from scripts.utils.env import outDirPath
 from torch.nn import functional as F
 import torchvision.transforms as T
-import torchvision.transforms.functional as T
 
 
 batch_name = 'stable_warpfusion_0.15.0'  #@param{type: 'string'}
@@ -67,5 +66,5 @@ warp_interp = Image.BILINEAR
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print('Using device:', DEVICE)
 device = DEVICE  # At least one of the modules expects this name..
-normalize = T.normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
+normalize = T.Normalize(mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
 lpips_model = lpips.LPIPS(net='vgg').to(device)
