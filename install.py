@@ -13,7 +13,7 @@ if __name__ == "__main__":
     gitclone('https://github.com/sxela/sxela-stablediffusion',
              dest='stablediffusion')
     gitclone('https://github.com/sxela/controlnet-v1-1-nightly',
-             dest='controlnet')
+             dest='ControlNet')
     gitclone('https://github.com/pengbo-learn/python-color-transfer')
     gitclone('https://github.com/Sxela/k-diffusion')
     try:
