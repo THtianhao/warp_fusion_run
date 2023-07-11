@@ -3,16 +3,14 @@ import torch
 import torch.nn as nn
 
 from modules import prompt_parser
-from scripts.settings.no_gui_config import img_zero_uncond, controlnet_multimodel_mode, controlnet_multimodel
 from scripts.model_process.model_env import model_version
 
-# from scripts.gui.gui_env import controlnet_multimodel_mode
-# from scripts.settings.main_settings import img_zero_uncond, controlnet_multimodel_mode, controlnet_multimodel
-
 class CFGDenoiser(nn.Module):
-    def __init__(self, model):
+    def __init__(self, model, img_zero_uncond, controlnet_multimodel_mode ):
         super().__init__()
         self.inner_model = model
+        self.img_zero_uncond = img_zero_uncond
+        self.controlnet_multimodel_mode = controlnet_multimodel_mode
 
     def forward(self, x, sigma, uncond, cond, cond_scale, loaded_controlnets, image_cond=None):
         cond = prompt_parser.reconstruct_cond_batch(cond, 0)
@@ -27,7 +25,7 @@ class CFGDenoiser(nn.Module):
             return uncond + (cond - uncond) * cond_scale
         else:
             if model_version != 'control_multi':
-                if img_zero_uncond:
+                if self.img_zero_uncond:
                     img_in = torch.cat([torch.zeros_like(image_cond),
                                         image_cond])
                 else:
@@ -36,10 +34,10 @@ class CFGDenoiser(nn.Module):
                                                                       'c_concat': [img_in]}).chunk(2)
                 return uncond + (cond - uncond) * cond_scale
 
-            if model_version == 'control_multi' and controlnet_multimodel_mode != 'external':
+            if model_version == 'control_multi' and self.controlnet_multimodel_mode != 'external':
                 img_in = {}
                 for key in image_cond.keys():
-                    if img_zero_uncond or key == 'control_sd15_shuffle':
+                    if self.img_zero_uncond or key == 'control_sd15_shuffle':
                         img_in[key] = torch.cat([torch.zeros_like(image_cond[key]),
                                                  image_cond[key]])
                     else:
@@ -47,19 +45,19 @@ class CFGDenoiser(nn.Module):
 
                 uncond, cond = self.inner_model(x_in, sigma_in, cond={"c_crossattn": [cond_in],
                                                                       'c_concat': img_in,
-                                                                      'controlnet_multimodel': controlnet_multimodel,
+                                                                      'controlnet_multimodel': self.controlnet_multimodel,
                                                                       'loaded_controlnets': loaded_controlnets}).chunk(2)
                 return uncond + (cond - uncond) * cond_scale
-            if model_version == 'control_multi' and controlnet_multimodel_mode == 'external':
+            if model_version == 'control_multi' and self.controlnet_multimodel_mode == 'external':
 
                 # wormalize weights
-                weights = np.array([controlnet_multimodel[m]["weight"] for m in controlnet_multimodel.keys()])
+                weights = np.array([self.controlnet_multimodel[m]["weight"] for m in self.controlnet_multimodel.keys()])
                 weights = weights / weights.sum()
                 result = None
                 # print(weights)
-                for i, controlnet in enumerate(controlnet_multimodel.keys()):
+                for i, controlnet in enumerate(self.controlnet_multimodel.keys()):
                     try:
-                        if img_zero_uncond or controlnet == 'control_sd15_shuffle':
+                        if self.img_zero_uncond or controlnet == 'control_sd15_shuffle':
                             img_in = torch.cat([torch.zeros_like(image_cond[controlnet]),
                                                 image_cond[controlnet]])
                         else:
@@ -67,7 +65,7 @@ class CFGDenoiser(nn.Module):
                     except:
                         pass
                     if weights[i] != 0:
-                        controlnet_settings = controlnet_multimodel[controlnet]
+                        controlnet_settings = self.controlnet_multimodel[controlnet]
                         self.inner_model.inner_model.control_model = loaded_controlnets[controlnet]
                         uncond, cond = self.inner_model(x_in, sigma_in, cond={"c_crossattn": [cond_in],
                                                                               'c_concat': [img_in]}).chunk(2)

@@ -4,8 +4,7 @@
 import math
 import os
 
-from scripts.settings.no_gui_config import consistency_blur, warp_mode, match_color_strength, missed_consistency_weight, overshoot_consistency_weight, edges_consistency_weight, consistency_dilate, \
-    use_patchmatch_inpaiting
+from scripts.settings.main_config import MainConfig
 from scripts.settings.setting import warp_interp
 from scripts.utils.env import root_dir, root_path
 from scripts.video_process.Input_padder import InputPadder
@@ -387,12 +386,12 @@ def writeFlow(filename, uv, v=None):
     tmp.astype(np.float32).tofile(f)
     f.close()
 
-def load_cc(path,controlnetDebugFolder, args, blur=2, dilate=0, ):
+def load_cc(config: MainConfig, path, controlnetDebugFolder, args, blur=2, dilate=0):
     multilayer_weights = np.array(Image.open(path)) / 255
     weights = np.ones_like(multilayer_weights[..., 0])
-    weights *= multilayer_weights[..., 0].clip(1 - missed_consistency_weight, 1)
-    weights *= multilayer_weights[..., 1].clip(1 - overshoot_consistency_weight, 1)
-    weights *= multilayer_weights[..., 2].clip(1 - edges_consistency_weight, 1)
+    weights *= multilayer_weights[..., 0].clip(1 - config.missed_consistency_weight, 1)
+    weights *= multilayer_weights[..., 1].clip(1 - config.overshoot_consistency_weight, 1)
+    weights *= multilayer_weights[..., 2].clip(1 - config.edges_consistency_weight, 1)
     weights = np.where(weights < 0.5, 0, 1)
     if dilate > 0:
         weights = (1 - binary_dilation(1 - weights, disk(dilate))).astype('uint8')
@@ -442,7 +441,7 @@ def fit(img, maxsize=512):
         img = img.resize(size, warp_interp)
     return img
 
-def warp(frame1, frame2, flo_path, blend=0.5, weights_path=None, forward_clip=0.,
+def warp(config: MainConfig, frame1, frame2, flo_path, blend=0.5, weights_path=None, forward_clip=0.,
          pad_pct=0.1, padding_mode='reflect', inpaint_blend=0., video_mode=False, warp_mul=1.):
     if isinstance(flo_path, str):
         flow21 = np.load(flo_path)
@@ -464,13 +463,13 @@ def warp(frame1, frame2, flo_path, blend=0.5, weights_path=None, forward_clip=0.
     frame2pil = np.array(frame2.convert('RGB').resize((flow21.shape[1] - pad * 2, flow21.shape[0] - pad * 2), warp_interp))
     # if not video_mode: frame2pil = match_color(frame1_warped21, frame2pil, opacity=match_color_strength)
     if weights_path:
-        forward_weights = load_cc(weights_path, blur=consistency_blur, dilate=consistency_dilate)
+        forward_weights = load_cc(config, weights_path, blur=config.consistency_blur, dilate=config.consistency_dilate)
         # print('forward_weights')
         # print(forward_weights.shape)
-        if not video_mode and match_color_strength > 0.: frame2pil = match_color(frame1_warped21, frame2pil, opacity=match_color_strength)
+        if not video_mode and config.match_color_strength > 0.: frame2pil = match_color(frame1_warped21, frame2pil, opacity=config.match_color_strength)
 
         forward_weights = forward_weights.clip(forward_clip, 1.)
-        if use_patchmatch_inpaiting > 0 and warp_mode == 'use_image':
+        if config.use_patchmatch_inpaiting > 0 and config.warp_mode == 'use_image':
             print('PatchMatch disabled.')
             # if not video_mode and is_colab:
             #       print('patchmatching')
@@ -480,7 +479,7 @@ def warp(frame1, frame2, flo_path, blend=0.5, weights_path=None, forward_clip=0.
             #       # blended_w = Image.fromarray(blended_w)
         blended_w = frame2pil * (1 - blend) + blend * (frame1_warped21 * forward_weights + frame2pil * (1 - forward_weights))
     else:
-        if not video_mode and match_color_strength > 0.: frame2pil = match_color(frame1_warped21, frame2pil, opacity=match_color_strength)
+        if not video_mode and config.match_color_strength > 0.: frame2pil = match_color(frame1_warped21, frame2pil, opacity=config.match_color_strength)
         blended_w = frame2pil * (1 - blend) + frame1_warped21 * (blend)
 
     blended_w = Image.fromarray(blended_w.round().astype('uint8'))
@@ -494,7 +493,7 @@ def warp(frame1, frame2, flo_path, blend=0.5, weights_path=None, forward_clip=0.
         if enable_adjust_brightness: blended_w = adjust_brightness(blended_w)
     return blended_w
 
-def warp_lat(frame1, frame2, flo_path, blend=0.5, weights_path=None, forward_clip=0.,
+def warp_lat(config: MainConfig, sd_model, frame1, frame2, flo_path, blend=0.5, weights_path=None, forward_clip=0.,
              pad_pct=0.1, padding_mode='reflect', inpaint_blend=0., video_mode=False, warp_mul=1.):
     warp_downscaled = True
     flow21 = np.load(flo_path)
@@ -528,7 +527,7 @@ def warp_lat(frame1, frame2, flo_path, blend=0.5, weights_path=None, forward_cli
     frame2pil = frame2pil.cpu().numpy()[0].transpose(1, 2, 0)
     # if not video_mode: frame2pil = match_color(frame1_warped21, frame2pil, opacity=match_color_strength)
     if weights_path:
-        forward_weights = load_cc(weights_path, blur=consistency_blur, dilate=consistency_dilate)
+        forward_weights = load_cc(config, weights_path, blur=config.consistency_blur, dilate=config.consistency_dilate)
         print(forward_weights[..., :1].shape, 'forward_weights.shape')
         forward_weights = np.repeat(forward_weights[..., :1], 4, axis=-1)
         # print('forward_weights')
@@ -538,7 +537,7 @@ def warp_lat(frame1, frame2, flo_path, blend=0.5, weights_path=None, forward_cli
         if warp_downscaled: forward_weights = forward_weights[::8, ::8, :]; print(forward_weights.shape, 'forward_weights.shape')
         blended_w = frame2pil * (1 - blend) + blend * (frame1_warped21 * forward_weights + frame2pil * (1 - forward_weights))
     else:
-        if not video_mode and not warp_mode == 'use_latent' and match_color_strength > 0.: frame2pil = match_color(frame1_warped21, frame2pil, opacity=match_color_strength)
+        if not video_mode and not config.warp_mode == 'use_latent' and config.match_color_strength > 0.: frame2pil = match_color(frame1_warped21, frame2pil, opacity=config.match_color_strength)
         blended_w = frame2pil * (1 - blend) + frame1_warped21 * (blend)
     blended_w = blended_w.transpose(2, 0, 1)[None, ...]
     blended_w = torch.from_numpy(blended_w).float()
@@ -546,22 +545,8 @@ def warp_lat(frame1, frame2, flo_path, blend=0.5, weights_path=None, forward_cli
         # blended_w = blended_w[::8,::8,:]
         blended_w = torch.nn.functional.interpolate(blended_w, scale_factor=1 / 8, mode='bilinear')
     return blended_w  # torch.nn.functional.interpolate(torch.from_numpy(blended_w), scale_factor = 1/8)
+
 os.chdir(root_path)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 def hstack(images):
     if isinstance(images[0], str):
