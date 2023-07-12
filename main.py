@@ -1,9 +1,12 @@
 import os
 import sys
 import pydevd_pycharm
+<<<<<<< Updated upstream
 
 from scripts.settings.main_config import MainConfig
 
+=======
+>>>>>>> Stashed changes
 pydevd_pycharm.settrace('49.7.62.197', port=10090, stdoutToServer=True, stderrToServer=True)
 from scripts.utils.env import root_dir
 

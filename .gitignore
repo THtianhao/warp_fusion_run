@@ -13,3 +13,5 @@ flow_tools/
 .idea/
 __pycache__/
 videoFrames/
+RobustVideoMattingCLI/
+*.mp4
