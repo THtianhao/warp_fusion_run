@@ -1,12 +1,8 @@
 import os
 import sys
 import pydevd_pycharm
-<<<<<<< Updated upstream
-
 from scripts.settings.main_config import MainConfig
 
-=======
->>>>>>> Stashed changes
 pydevd_pycharm.settrace('49.7.62.197', port=10090, stdoutToServer=True, stderrToServer=True)
 from scripts.utils.env import root_dir
 
@@ -37,7 +33,6 @@ if __name__ == "__main__":
     video_config.mask_video_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance_mask.mp4"
     mask_video_frame(video_config)
 
-
     # download_reference_repository(video_config.animation_mode)
     # 使用光流脚本生成光流图，生成一致性图
     video_config.use_jit_raft = False
@@ -45,7 +40,7 @@ if __name__ == "__main__":
     model_config = ModelConfig()
     model_config.model_path = '/data/tianhao/stable-diffusion-webui/models/Stable-diffusion/deliberate_v2.safetensors'
     model_config.controlnet_models_dir = '/data/tianhao/warp_fussion/ControlNet/models'
-    load_sd_and_k_fusion(model_config,main_config)
+    load_sd_and_k_fusion(model_config, main_config)
     # tail_vae_config = TiledVaeConfig()
     # tiled_vae(tail_vae_config, model_config.sd_mode)
     # clip_config = ClipConfig()
