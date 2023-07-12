@@ -13,6 +13,7 @@ class ModelConfig:
     # #@param {'type':'boolean'}
     force_download = False  # @param {'type':'boolean'}
     controlnet_models_dir = "d:/models/ControlNet"  # @param {'type':'string'}
+    img_zero_uncond = False  # by default image conditioned models use same image for negative conditioning (i.e. both positive and negative image conditings are the same. you can use empty negative condition by enabling this)
     sd_mode = None
     model_wrap_cfg = None
     sigma_min = None

@@ -13,13 +13,14 @@ from scripts.model_process.instruct_pix2_cfg_denoiser import InstructPix2PixCFGD
 from scripts.model_process.mode_func import cat8
 from scripts.model_process.model_config import ModelConfig
 from scripts.model_process.model_env import model_version, model_urls, control_model_urls, control_helpers, load_model_from_config, vae_ckpt, config_path, quantize
+from scripts.settings.main_config import MainConfig
 from scripts.utils.env import root_dir
 from omegaconf import OmegaConf
 import wget
 import k_diffusion
 import pickle
 
-def load_sd_and_k_fusion(config: ModelConfig):
+def load_sd_and_k_fusion(config: ModelConfig, main_config:MainConfig):
     if config.controlnet_models_dir.startswith('/content') or config.controlnet_models_dir == '':
         controlnet_models_dir = f"{root_dir}/ControlNet/models"
         print('You have a controlnet path set up for google drive, but we are not on Colab. Defaulting controlnet model path to ', controlnet_models_dir)
@@ -89,17 +90,17 @@ def load_sd_and_k_fusion(config: ModelConfig):
             for model_ver in control_versions:
                 small_url = control_model_urls[model_ver]
                 local_filename = small_url.split('/')[-1]
-                small_controlnet_model_path = f"{config.controlnet_models_dir}/{local_filename}"
-                if config.use_small_controlnet and os.path.exists(config.model_path) and not os.path.exists(small_controlnet_model_path):
-                    print(f'Model found at {config.model_path}. Small model not found at {small_controlnet_model_path}.')
+                config.small_controlnet_model_path = f"{config.controlnet_models_dir}/{local_filename}"
+                if config.use_small_controlnet and os.path.exists(config.model_path) and not os.path.exists(config.small_controlnet_model_path):
+                    print(f'Model found at {config.model_path}. Small model not found at {config.small_controlnet_model_path}.')
 
-                    if not os.path.exists(small_controlnet_model_path) or config.force_download:
+                    if not os.path.exists(config.small_controlnet_model_path) or config.force_download:
                         try:
-                            pathlib.Path(small_controlnet_model_path).unlink()
+                            pathlib.Path(config.small_controlnet_model_path).unlink()
                         except:
                             pass
                         print(f'Downloading small controlnet model from {small_url}... ')
-                        wget.download(small_url, small_controlnet_model_path)
+                        wget.download(small_url, config.small_controlnet_model_path)
                         print('Downloaded small controlnet model.')
 
                 # https://huggingface.co/lllyasviel/Annotators/tree/main
@@ -154,7 +155,7 @@ def load_sd_and_k_fusion(config: ModelConfig):
     else:
         config.model_wrap = k_diffusion.external.CompVisDenoiser(sd_model, quantize=quantize)
     config.sigma_min, config.sigma_max = config.model_wrap.sigmas[0].item(), config.model_wrap.sigmas[-1].item()
-    config.model_wrap_cfg = CFGDenoiser(config.model_wrap, config.img_zero_uncond, config.controlnet_multimodel_mode)
+    config.model_wrap_cfg = CFGDenoiser(config.model_wrap, config.img_zero_uncond, main_config.controlnet_multimodel_mode)
     if model_version == 'v1_instructpix2pix':
         config.model_wrap_cfg = InstructPix2PixCFGDenoiser(config.model_wrap)
     try:

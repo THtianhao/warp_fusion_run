@@ -365,7 +365,6 @@ class MainConfig:
     cb_fixed_code = False  # fix noise across all animation in masked diffusion callback (overcooks fast af)
     cb_norm_latent = False  # norm cb latent to normal ditribution stats in masked diffusion callback
 
-    img_zero_uncond = False  # by default image conditioned models use same image for negative conditioning (i.e. both positive and negative image conditings are the same. you can use empty negative condition by enabling this)
 
     use_legacy_fixed_code = False
 

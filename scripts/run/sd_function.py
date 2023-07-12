@@ -477,7 +477,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'use_scale': main_config.use_scale,
         'g_invert_mask': main_config.g_invert_mask,
         'controlnet_multimodel': json.dumps(main_config.controlnet_multimodel),
-        'img_zero_uncond': main_config.img_zero_uncond,
+        'img_zero_uncond': model_config.img_zero_uncond,
         'do_softcap': main_config.do_softcap,
         'softcap_thresh': main_config.softcap_thresh,
         'softcap_q': main_config.softcap_q,
@@ -543,7 +543,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
             raise Exception("Predicted noise not supported for external mode. Please turn predicted noise off or use internal mode.")
         if image_conditioning is not None:
             if model_version != 'control_multi':
-                if main_config.img_zero_uncond:
+                if model_config.img_zero_uncond:
                     img_in = torch.cat([torch.zeros_like(image_conditioning),
                                         image_conditioning])
                 else:
@@ -554,7 +554,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
                 img_in = {}
                 for key in image_conditioning.keys():
                     img_in[key] = torch.cat([torch.zeros_like(image_conditioning[key]),
-                                             image_conditioning[key]]) if main_config.img_zero_uncond else torch.cat([image_conditioning[key]] * 2)
+                                             image_conditioning[key]]) if model_config.img_zero_uncond else torch.cat([image_conditioning[key]] * 2)
 
                 cond_in = {"c_crossattn": [cond_in], 'c_concat': img_in,
                            'controlnet_multimodel': main_config.controlnet_multimodel,

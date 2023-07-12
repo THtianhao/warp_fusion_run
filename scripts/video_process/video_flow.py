@@ -4,7 +4,7 @@ import numpy as np
 from PIL.ImageDraw import ImageDraw
 from safetensors import torch
 
-from scripts.utils.cmd import gitclone, gitpull
+from scripts.utils.cmd import gitclone, gitpull, pipi
 import subprocess
 from PIL.Image import Image
 from scripts.settings.setting import batchFolder, width_height
@@ -19,8 +19,7 @@ from scripts.video_process.video_config import VideoConfig
 
 if platform.system() != 'Linux' and not os.path.exists("ffmpeg.exe"):
     print("Warning! ffmpeg.exe not found. Please download ffmpeg and place it in current working dir.")
-
-def extra_video_frame(config: VideoConfig):
+def set_video_path(config:VideoConfig):
     if config.animation_mode == 'Video Input':
         in_path = config.videoFramesFolder if not config.flow_video_init_path else config.flowVideoFramesFolder
         config.flo_folder = config.in_path + '_out_flo_fwd'
@@ -49,6 +48,7 @@ def extra_video_frame(config: VideoConfig):
         os.makedirs(config.controlnetDebugFolder, exist_ok=True)
         os.makedirs(config.recNoiseCacheFolder, exist_ok=True)
 
+def extra_video_frame(config: VideoConfig):
         extractFrames(config.video_init_path, config.videoFramesFolder, config.extract_nth_frame, config.start_frame, config.end_frame)
         if config.flow_video_init_path:
             print(config.flow_video_init_path, config.flowVideoFramesFolder, config.flow_extract_nth_frame)
@@ -66,16 +66,20 @@ def extra_video_frame(config: VideoConfig):
                 print(config.color_video_path, config.colorVideoFramesFolder, config.color_extract_nth_frame)
                 extractFrames(config.color_video_path, config.colorVideoFramesFolder, config.color_extract_nth_frame, config.start_frame, config.end_frame)
 
-def mask_video(bean: VideoConfig):
+def mask_video_frame(bean: VideoConfig):
     if bean.extract_background_mask:
         os.chdir(root_dir)
-        subprocess.run('python -m pip -q install av pims')
+        pipi('av')
+        pipi('pims')
         gitclone('https://github.com/Sxela/RobustVideoMattingCLI')
         if bean.mask_source == 'init_video':
             bean.videoFramesAlpha = bean.videoFramesFolder + 'Alpha'
             createPath(bean.videoFramesAlpha)
             cmd = ['python', f"{root_dir}/RobustVideoMattingCLI/rvm_cli.py", '--input_path', f'{bean.videoFramesFolder}', '--output_alpha', f"{root_dir}/alpha.mp4"]
             process = subprocess.Popen(cmd, cwd=f'{root_dir}', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
+            print(stdout)
+            print(stderr)
             extractFrames(f"{root_dir}/alpha.mp4", f"{bean.videoFramesAlpha}", 1, 0, 999999999)
         if bean.mask_source == 'mask_video':
             bean.videoFramesAlpha = bean.videoFramesFolder + 'Alpha'
@@ -85,6 +89,7 @@ def mask_video(bean: VideoConfig):
             extractFrames(bean.mask_video_path, f"{maskVideoFrames}", bean.extract_nth_frame, bean.start_frame, bean.end_frame)
             cmd = ['python', f"{root_dir}/RobustVideoMattingCLI/rvm_cli.py", '--input_path', f'{maskVideoFrames}', '--output_alpha', f"{root_dir}/alpha.mp4"]
             process = subprocess.Popen(cmd, cwd=f'{root_dir}', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            print(process)
             extractFrames(f"{root_dir}/alpha.mp4", f"{bean.videoFramesAlpha}", 1, 0, 999999999)
     else:
         if bean.mask_source == 'init_video':
@@ -122,11 +127,3 @@ def download_reference_repository(animation_mode, force: bool = False):
     if animation_mode == 'Video Input':
         os.chdir(root_dir)
         gitclone('https://github.com/Sxela/flow_tools')
-
-    # @title Define color matching and brightness adjustment
-    os.chdir(f"{root_dir}/python-color-transfer")
-    from python_color_transfer.color_transfer import ColorTransfer, Regrain
-    os.chdir(root_path)
-
-    PT = ColorTransfer()
-    RG = Regrain()
