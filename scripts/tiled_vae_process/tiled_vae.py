@@ -12,7 +12,7 @@ from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 from scripts.tiled_vae_process.tiled_vae_config import TiledVaeConfig
 
 def tiled_vae(config: TiledVaeConfig, sd_model):
-    def get_fold_unfold(x, kernel_size, stride, uf=1, df=1, self=sd_model):  # todo load once not every time, shorten code
+    def get_fold_unfold(x, kernel_size, stride, uf=1, df=1, self=sd_model):
         """
         :param x: img of size (bs, c, h, w)
         :return: n img crops of size (n, bs, c, kernel_size[0], kernel_size[1])

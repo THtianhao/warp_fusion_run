@@ -4,7 +4,7 @@ import torch
 from scripts.lora_embedding.lora_embedding_config import LoraEmbeddingConfig
 from scripts.lora_embedding.lora_embedding_fun import list_available_loras, available_loras
 
-def set_lora_embedding(config: LoraEmbeddingConfig, sd_model):
+def set_lora_embedding(config: LoraEmbeddingConfig):
     if config.lora_dir.startswith('/content'):
         config.lora_dir = './loras'
         print('Overriding lora dir to ./loras for non-colab env because you path begins with /content. Change path to desired folder')

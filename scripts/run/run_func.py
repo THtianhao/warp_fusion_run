@@ -48,9 +48,9 @@ def do_run(main_config: MainConfig,
            content_config: ContentAwareConfig,
            model_config: ModelConfig,
            ref_config: ReferenceConfig,
-           clip_config: ClipConfig,
-           sd_model):
+           clip_config: ClipConfig):
     global blend_json_schedules, diffusion_model
+    sd_model = model_config.sd_mode
     blend_json_schedules = main_config.blend_json_schedules
     args = main_config.args
     seed = args.seed

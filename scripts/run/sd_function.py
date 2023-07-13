@@ -103,17 +103,12 @@ def sd_cond_fn(x, t, denoised, init_image_sd, init_latent, init_scale,
                **kwargs):
     if main_config.use_scale: scaler = GradScaler()
     with torch.cuda.amp.autocast():
-        global add_noise_to_latent
-
         # init_latent_scale,  init_scale, clip_guidance_scale, target_embed, init_latent, clamp_grad, clamp_max,
         # **kwargs):
         # global init_latent_scale
         # global init_scale
-        global clip_guidance_scale
         # global target_embed
         # print(target_embed.shape)
-        global clamp_grad
-        global clamp_max
         loss = 0.
         if main_config.grad_denoised:
             x = denoised
@@ -123,7 +118,7 @@ def sd_cond_fn(x, t, denoised, init_image_sd, init_latent, init_scale,
         grad = torch.zeros_like(x)
 
         processed1 = deflicker_src['processed1']
-        if add_noise_to_latent:
+        if main_config.add_noise_to_latent:
             if t != 0:
                 if main_config.guidance_use_start_code and guidance_start_code is not None:
                     noise = guidance_start_code
