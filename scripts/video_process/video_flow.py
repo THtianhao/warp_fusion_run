@@ -21,7 +21,7 @@ if platform.system() != 'Linux' and not os.path.exists("ffmpeg.exe"):
     print("Warning! ffmpeg.exe not found. Please download ffmpeg and place it in current working dir.")
 def set_video_path(config:VideoConfig):
     if config.animation_mode == 'Video Input':
-        in_path = config.videoFramesFolder if not config.flow_video_init_path else config.flowVideoFramesFolder
+        config.in_path = config.videoFramesFolder if not config.flow_video_init_path else config.flowVideoFramesFolder
         config.flo_folder = config.in_path + '_out_flo_fwd'
         config.temp_flo = config.in_path + '_temp_flo'
         config.flo_fwd_folder = config.in_path + '_out_flo_fwd'

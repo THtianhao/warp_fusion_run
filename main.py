@@ -25,6 +25,7 @@ from scripts.tiled_vae_process.tiled_vae_config import TiledVaeConfig
 from scripts.video_process.video_flow import extra_video_frame, mask_video_frame, download_reference_repository, set_video_path
 from scripts.video_process.generate_optical_func import generate_optical_flow
 from scripts.settings.main_config import MainConfig
+from scripts.run.run_prepare_config import run_prepare_config
 
 if __name__ == "__main__":
     main_config = MainConfig()
@@ -66,4 +67,5 @@ if __name__ == "__main__":
     ref_config = ReferenceConfig()
     reference_control(ref_config, model_config.sd_mode, main_config.reference_latent)
     prepare_run(main_config)
+    run_prepare_config(main_config,model_config,video_config,lora_embedding_config,content_aware_config)
     do_run(main_config, video_config, content_aware_config, model_config, ref_config, clip_config)

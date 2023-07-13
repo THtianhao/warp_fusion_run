@@ -1,11 +1,11 @@
 # @title Do the Run!
 # @markdown Preview max size
+import copy
 import gc
 import os
 import pathlib
 import random
 import sys
-from datetime import datetime
 from glob import glob
 from types import SimpleNamespace
 
@@ -16,22 +16,20 @@ import wget
 from safetensors import safe_open
 
 from modules import sd_hijack
-import copy
-
+from scripts.content_ware_process.content_aware_config import ContentAwareConfig
+from scripts.content_ware_process.difference_fun import check_and_adjust_sched
+from scripts.lora_embedding.lora_embedding_config import LoraEmbeddingConfig
 from scripts.lora_embedding.lora_embedding_fun import inject_lora, split_lora_from_prompts
+from scripts.model_process.model_config import ModelConfig
+from scripts.model_process.model_env import model_version, control_model_urls, load_to
 from scripts.run.run_env import diffusion_sampling_mode
+from scripts.settings.main_config import MainConfig
 from scripts.settings.setting import batch_name, batchFolder, steps, width_height, clip_guidance_scale, tv_scale, range_scale, cutn_batches, init_image, init_scale, skip_steps, side_x, side_y, \
     skip_augs
 from scripts.utils.env import root_dir
 from scripts.utils.path import createPath
-from scripts.video_process.video_config import VideoConfig
-from scripts.content_ware_process.content_aware_config import ContentAwareConfig
-from scripts.content_ware_process.difference_fun import check_and_adjust_sched
-from scripts.lora_embedding.lora_embedding_config import LoraEmbeddingConfig
-from scripts.model_process.model_config import ModelConfig
-from scripts.model_process.model_env import model_version, control_model_urls, load_to
-from scripts.settings.main_config import MainConfig
 from scripts.video_process.color_transfor_func import force_download, PT
+from scripts.video_process.video_config import VideoConfig
 
 def unload():
     torch.nn.Linear.forward = torch.nn.Linear_forward_before_lora
@@ -45,8 +43,8 @@ def run_prepare_config(main_config: MainConfig,
                        model_config: ModelConfig,
                        video_config: VideoConfig,
                        lora_embedding_config: LoraEmbeddingConfig,
-                       content_aware_config: ContentAwareConfig,
-                       sd_model):
+                       content_aware_config: ContentAwareConfig):
+    sd_model = model_config.sd_mode
     torch.cuda.empty_cache()
     gc.collect()
     sd_model.control_scales = ([1] * 13)
@@ -244,16 +242,11 @@ def run_prepare_config(main_config: MainConfig,
                 if len(sched) > 2:
                     print(name, ': ', sched[:100])
 
-    if main_config.turbo_frame_skips_steps == '100% (don`t diffuse turbo frames, fastest)':
-        turbo_frame_skips_steps = None
-    else:
-        turbo_frame_skips_steps = int(main_config.turbo_frame_skips_steps.split('%')[0]) / 100
-
-    colormatch_method_fn = PT.lab_transfer
+    main_config.colormatch_method_fn = PT.lab_transfer
     if main_config.colormatch_method == 'PDF':
-        colormatch_method_fn = PT.pdf_transfer
+        main_config.colormatch_method_fn = PT.pdf_transfer
     if main_config.colormatch_method == 'mean':
-        colormatch_method_fn = PT.mean_std_transfer
+        main_config.colormatch_method_fn = PT.mean_std_transfer
 
     if video_config.animation_mode == 'Video Input':
         main_config.max_frames = len(glob(f'{video_config.videoFramesFolder}/*.jpg'))
@@ -278,7 +271,7 @@ def run_prepare_config(main_config: MainConfig,
             new_file = new_folder + f'/{batch_name}({batchNum})_{i:06}.png'
             os.rename(old_file, new_file)
 
-    if main_config.retain_overwritten_frames is True:
+    if main_config.retain_overwritteon_frames is True:
         retainFolder = f'{batchFolder}/retained'
         createPath(retainFolder)
 
