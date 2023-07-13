@@ -19,7 +19,7 @@ from modules import sd_hijack
 import copy
 
 from scripts.lora_embedding.lora_embedding_fun import inject_lora, split_lora_from_prompts
-from scripts.run.run_func import diffusion_sampling_mode
+from scripts.run.run_env import diffusion_sampling_mode
 from scripts.settings.setting import batch_name, batchFolder, steps, width_height, clip_guidance_scale, tv_scale, range_scale, cutn_batches, init_image, init_scale, skip_steps, side_x, side_y, \
     skip_augs
 from scripts.utils.env import root_dir

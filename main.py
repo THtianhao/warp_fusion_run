@@ -1,6 +1,9 @@
-import os
-import sys
+from scripts.utils.env import root_dir
+
+print(root_dir)
 import pydevd_pycharm
+
+pydevd_pycharm.settrace('49.7.62.197', port=10090, stdoutToServer=True, stderrToServer=True)
 
 from scripts.lora_embedding.lora_and_embedding_ import set_lora_embedding
 from scripts.lora_embedding.lora_embedding_config import LoraEmbeddingConfig
@@ -8,12 +11,6 @@ from scripts.refrerence_control_processor.reference_config import ReferenceConfi
 from scripts.refrerence_control_processor.reference_control import reference_control
 from scripts.run.prepare_run import prepare_run
 from scripts.run.run_func import do_run
-
-pydevd_pycharm.settrace('49.7.62.197', port=10090, stdoutToServer=True, stderrToServer=True)
-from scripts.utils.env import root_dir
-
-print(root_dir)
-
 from scripts.captioning_process.captioning_config import CaptioningConfig
 from scripts.captioning_process.generate_key_frame import generate_key_frame
 from scripts.content_ware_process.content_aware_config import ContentAwareConfig
@@ -67,7 +64,6 @@ if __name__ == "__main__":
     lora_embedding_config.custom_embed_dir = '/data/tianhao/warp_fussion/models/embeddings'
     set_lora_embedding(lora_embedding_config)
     ref_config = ReferenceConfig()
-    reference_control(ref_config,model_config.sd_mode,)
+    reference_control(ref_config, model_config.sd_mode, )
     prepare_run(main_config)
     do_run(main_config, video_config, content_aware_config, model_config, ref_config, clip_config)
-

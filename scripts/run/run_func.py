@@ -28,7 +28,8 @@ from scripts.content_ware_process.content_aware_config import ContentAwareConfig
 from scripts.lora_embedding.lora_embedding_fun import get_loras_weights_for_frame, load_loras
 from scripts.model_process.model_config import ModelConfig
 from scripts.refrerence_control_processor.reference_config import ReferenceConfig
-from scripts.run.run_common_func import get_scheduled_arg, get_sched_from_json
+from scripts.run.run_common_func import get_scheduled_arg, get_sched_from_json, printf
+from scripts.run.run_env import stop_on_next_loop, VERBOSE, diffusion_model
 from scripts.run.sd_function import match_color_var, run_sd
 from scripts.settings.main_config import MainConfig
 from scripts.settings.setting import batch_name, batchFolder, side_x, side_y
@@ -37,12 +38,7 @@ from scripts.video_process.color_transfor_func import warp, warp_lat, k_means_wa
 from scripts.video_process.video_config import VideoConfig
 from scripts.model_process.mode_func import get_image_embed, spherical_dist_loss
 
-stop_on_next_loop = False  # Make sure GPU memory doesn't get corrupted from cancelling the run mid-way through, allow a full frame to complete
-TRANSLATION_SCALE = 1.0 / 200.
-VERBOSE = False
-blend_json_schedules = False
-diffusion_model = "stable_diffusion"
-diffusion_sampling_mode = 'ddim'
+
 
 def do_run(main_config: MainConfig,
            video_config: VideoConfig,
@@ -778,12 +774,6 @@ def do_3d_step(img_filepath, frame_num, main_config: MainConfig, video_config: V
 
     return warped
 
-def printf(*msg, file=f'{root_dir}/log.txt'):
-    now = datetime.now()
-    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-    with open(file, 'a') as f:
-        msg = f'{dt_string}> {" ".join([str(o) for o in (msg)])}'
-        print(msg, file=f)
 
 def get_frame_from_color_mode(mode, offset, frame_num, video_config: VideoConfig, args):
     if mode == 'color_video':

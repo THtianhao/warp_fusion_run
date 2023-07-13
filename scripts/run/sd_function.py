@@ -16,7 +16,8 @@ from scripts.model_process.mode_func import get_image_embed, spherical_dist_loss
 from scripts.model_process.model_config import ModelConfig
 from scripts.model_process.model_env import device, model_version, dynamic_thresh, quantize, no_half_vae
 from scripts.refrerence_control_processor.reference_config import ReferenceConfig
-from scripts.run.run_func import VERBOSE, printf, diffusion_model
+from scripts.run.run_common_func import printf
+from scripts.run.run_env import VERBOSE, diffusion_model
 from scripts.settings.main_config import MainConfig
 from scripts.settings.setting import normalize, lpips_model, init_image, width_height
 from scripts.video_process.color_transfor_func import high_brightness_threshold, high_brightness_adjust_ratio, low_brightness_threshold, low_brightness_adjust_ratio, high_brightness_adjust_fix_amount, \

@@ -1,3 +1,7 @@
+from datetime import datetime
+
+from scripts.utils.env import root_dir
+
 def get_scheduled_arg(frame_num, schedule):
     if isinstance(schedule, list):
         return schedule[frame_num] if frame_num < len(schedule) else schedule[-1]
@@ -37,3 +41,10 @@ def get_sched_from_json(frame_num, sched_json, blend=False):
                     return sched_json[k1] * (1 - dist_from_k1 / total_dist) + sched_json[k2] * (dist_from_k1 / total_dist)
             # else: print(f'frame {frame_num} not in {k1} {k2}')
     return 0
+
+def printf(*msg, file=f'{root_dir}/log.txt'):
+    now = datetime.now()
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+    with open(file, 'a') as f:
+        msg = f'{dt_string}> {" ".join([str(o) for o in (msg)])}'
+        print(msg, file=f)
