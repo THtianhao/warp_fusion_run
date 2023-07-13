@@ -10,20 +10,12 @@ from typing import Union
 from safetensors import safe_open
 
 from modules import devices
+from scripts.lora_embedding.lora_embedding_env import weight_load_location, loaded_loras, available_loras, checkpoint_dict_replacements
 from scripts.lora_embedding.lora_model import LoraModule
 from scripts.lora_embedding.lora_on_disk import LoraOnDisk
 from scripts.lora_embedding.lora_up_down_module import LoraUpDownModule
-from scripts.run.run_func import get_scheduled_arg
+from scripts.run.run_common_func import get_scheduled_arg
 
-weight_load_location = 'cpu'
-available_loras = {}
-loaded_loras = []
-
-checkpoint_dict_replacements = {
-    'cond_stage_model.transformer.embeddings.': 'cond_stage_model.transformer.text_model.embeddings.',
-    'cond_stage_model.transformer.encoder.': 'cond_stage_model.transformer.text_model.encoder.',
-    'cond_stage_model.transformer.final_layer_norm.': 'cond_stage_model.transformer.text_model.final_layer_norm.',
-}
 def torch_load_file(filename, device):
     result = {}
     with safe_open(filename, framework="pt", device=device) as f:

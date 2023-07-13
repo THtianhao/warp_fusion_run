@@ -98,7 +98,7 @@ from torch.nn import functional as F
 from torch.cuda.amp import GradScaler
 
 def sd_cond_fn(x, t, denoised, init_image_sd, init_latent, init_scale,
-               init_latent_scale, target_embed, consistency_mask, main_config: MainConfig, sd_model, guidance_start_code=None,
+               init_latent_scale, target_embed, consistency_mask, main_config: MainConfig, sd_model,clip_config:ClipConfig, guidance_start_code=None,
                deflicker_fn=None, deflicker_lat_fn=None, deflicker_src=None,
                **kwargs):
     if main_config.use_scale: scaler = GradScaler()
@@ -133,12 +133,12 @@ def sd_cond_fn(x, t, denoised, init_image_sd, init_latent, init_scale,
                 if deflicker_lat_fn:
                     processed1 = deflicker_src['processed1'] + noise
 
-        if main_config.sat_scale > 0 or init_scale > 0 or clip_guidance_scale > 0 or main_config.deflicker_scale > 0:
+        if main_config.sat_scale > 0 or init_scale > 0 or clip_config.clip_guidance_scale > 0 or main_config.deflicker_scale > 0:
             with torch.autocast('cuda'):
                 denoised_small = denoised[:, :, ::2, ::2]
                 denoised_img = main_config.model_wrap_cfg.inner_model.inner_model.differentiable_decode_first_stage(denoised_small)
 
-        if clip_guidance_scale > 0:
+        if clip_config.clip_guidance_scale > 0:
             # compare text clip embeds with denoised image embeds
             # denoised_img = model_wrap_cfg.inner_model.inner_model.differentiable_decode_first_stage(denoised);# print(denoised.requires_grad)
             # print('d b',denoised.std(), denoised.mean())
@@ -149,7 +149,7 @@ def sd_cond_fn(x, t, denoised, init_image_sd, init_latent, init_scale,
             image_embed = get_image_embed(denoised_t)
 
             # image_embed = get_image_embed(denoised.add(1).div(2))
-            loss = spherical_dist_loss(image_embed, target_embed).sum() * clip_guidance_scale
+            loss = spherical_dist_loss(image_embed, target_embed).sum() * clip_config.clip_guidance_scale
 
         if main_config.masked_guidance:
             if consistency_mask is None:
@@ -202,9 +202,9 @@ def sd_cond_fn(x, t, denoised, init_image_sd, init_latent, init_scale,
             print('got NaN grad')
             return torch.zeros_like(x)
         if VERBOSE: printf('loss, grad', loss, grad.max(), grad.mean(), grad.std(), denoised.mean(), denoised.std())
-        if clamp_grad:
+        if clip_config.clamp_grad:
             magnitude = grad.square().mean().sqrt()
-            return grad * magnitude.clamp(max=clamp_max) / magnitude
+            return grad * magnitude.clamp(max=clip_config.clamp_max) / magnitude
 
     return grad
 
@@ -350,7 +350,7 @@ import hashlib
 
 def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditioning, cfg_scale, steps, frame_num,
                                           main_config: MainConfig, video_config: VideoConfig, content_config: ContentAwareConfig,
-                                          model_config: ModelConfig,
+                                          model_config: ModelConfig, clip_config:ClipConfig,
                                           sd_model):
     rec_noise_setting_list = {
         'init_image': init_image,
@@ -391,7 +391,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'reverse_cc_order': video_config.reverse_cc_order,
         'flow_lq': video_config.flow_lq,
         'use_predicted_noise': main_config.use_predicted_noise,
-        'clip_guidance_scale': clip_guidance_scale,
+        'clip_guidance_scale': clip_config.clip_guidance_scale,
         'clip_type': clip_type,
         'clip_pretrain': clip_pretrain,
         'missed_consistency_weight': main_config.missed_consistency_weight,
@@ -449,7 +449,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'bg_threshold': main_config.bg_threshold,
         'diffuse_inpaint_mask_blur': main_config.diffuse_inpaint_mask_blur,
         'diffuse_inpaint_mask_thresh': main_config.diffuse_inpaint_mask_thresh,
-        'add_noise_to_latent': add_noise_to_latent,
+        'add_noise_to_latent': clip_config.add_noise_to_latent,
         'noise_upscale_ratio': main_config.noise_upscale_ratio,
         'fixed_seed': main_config.fixed_seed,
         'init_latent_fn': spherical_dist_loss.__name__,
@@ -673,8 +673,8 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
     if VERBOSE:
         print('seed', 'clip_guidance_scale', 'init_scale', 'init_latent_scale', 'clamp_grad', 'clamp_max',
               'init_image', 'skip_timesteps', 'cfg_scale')
-        print(seed, clip_guidance_scale, init_scale, init_latent_scale, clamp_grad,
-              clamp_max, init_image, skip_timesteps, cfg_scale)
+        print(seed, clip_config.clip_guidance_scale, init_scale, init_latent_scale, clip_config.clamp_grad,
+              clip_config.clamp_max, init_image, skip_timesteps, cfg_scale)
     global start_code, inpainting_mask_weight, inverse_inpainting_mask, start_code_cb, guidance_start_code
     global pred_noise, controlnet_preprocess
     # global frame_num
@@ -791,7 +791,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
             n2_std = x0.std()
         x0 = x0 / (n2_std / n_std)
 
-    if clip_guidance_scale > 0:
+    if clip_config.clip_guidance_scale > 0:
         # text_features = clip_model.encode_text(text)
         target_embed = F.normalize(clip_config.clip_model.encode_text(open_clip.tokenize(prompt_clip).cuda()).float())
     else:
@@ -1231,7 +1231,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                     rand_noise = torch.randn_like(x0)
                                     rec_noise = find_noise_for_image_sigma_adjustment(init_latent=rec_frame_latent, prompt=rec_prompt, image_conditioning=depth_cond, cfg_scale=scale, steps=ddim_steps,
                                                                                       frame_num=frame_num, main_config=config, video_config=video_config, content_config=content_config,
-                                                                                      model_config=model_config, sd_model=sd_model)
+                                                                                      model_config=model_config, clip_config=clip_config, sd_model=sd_model)
                                     combined_noise = ((1 - config.rec_randomness) * rec_noise + config.rec_randomness * rand_noise) / (
                                             (config.rec_randomness ** 2 + (1 - config.rec_randomness) ** 2) ** 0.5)
                                     noise = combined_noise - (x0 / sigmas[0])
@@ -1256,7 +1256,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                 rand_noise = torch.randn_like(x0)
                                 rec_noise = find_noise_for_image_sigma_adjustment(init_latent=rec_frame_latent, prompt=rec_prompt, image_conditioning=depth_cond, cfg_scale=scale, steps=ddim_steps,
                                                                                   frame_num=frame_num, main_config=config, video_config=video_config, content_config=content_config,
-                                                                                      model_config=model_config, sd_model=sd_model)
+                                                                                      model_config=model_config,clip_config=clip_config, sd_model=sd_model)
                                 combined_noise = ((1 - config.rec_randomness) * rec_noise + config.rec_randomness * rand_noise) / (
                                         (config.rec_randomness ** 2 + (1 - config.rec_randomness) ** 2) ** 0.5)
                                 x = combined_noise  # - (x0 / sigmas[0])
