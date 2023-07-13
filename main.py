@@ -64,6 +64,6 @@ if __name__ == "__main__":
     lora_embedding_config.custom_embed_dir = '/data/tianhao/warp_fussion/models/embeddings'
     set_lora_embedding(lora_embedding_config)
     ref_config = ReferenceConfig()
-    reference_control(ref_config, model_config.sd_mode, )
+    reference_control(ref_config, model_config.sd_mode, main_config.reference_latent)
     prepare_run(main_config)
     do_run(main_config, video_config, content_aware_config, model_config, ref_config, clip_config)

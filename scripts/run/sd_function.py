@@ -268,7 +268,6 @@ def pil2midas(pil_image):
     return torch.from_numpy(image[None, ...]).float()
 
 def make_depth_cond(pil_image, x, sd_model):
-    global frame_num
     pil_image = Image.open(pil_image).convert('RGB')
     c_cat = list()
     cc = pil2midas(pil_image).cuda()
@@ -403,11 +402,11 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'latent_scale_schedule': main_config.latent_scale_schedule,
         'flow_blend_template': content_config.flow_blend_template,
         'make_schedules': content_config.make_schedules,
-        'normalize_latent': normalize_latent,
+        'normalize_latent': main_config.normalize_latent,
         'normalize_latent_offset': main_config.normalize_latent_offset,
         'colormatch_frame': main_config.colormatch_frame,
-        'use_karras_noise': use_karras_noise,
-        'end_karras_ramp_early': end_karras_ramp_early,
+        'use_karras_noise': main_config.use_karras_noise,
+        'end_karras_ramp_early': main_config.end_karras_ramp_early,
         'use_background_mask': main_config.use_background_mask,
         'apply_mask_after_warp': main_config.apply_mask_after_warp,
         'background': main_config.background,
@@ -421,8 +420,8 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'respect_sched': content_config.respect_sched,
         'color_match_frame_str': main_config.color_match_frame_str,
         'colormatch_offset': main_config.colormatch_offset,
-        'latent_fixed_mean': latent_fixed_mean,
-        'latent_fixed_std': latent_fixed_std,
+        'latent_fixed_mean': main_config.latent_fixed_mean,
+        'latent_fixed_std': main_config.latent_fixed_std,
         'colormatch_method': main_config.colormatch_method,
         'colormatch_regrain': main_config.colormatch_regrain,
         'warp_mode': main_config.warp_mode,
@@ -439,7 +438,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'warp_forward': main_config.warp_forward,
         'sampler': main_config.sampler.__name__,
         'mask_clip': (main_config.mask_clip[0], main_config.mask_clip[1]),
-        'inpainting_mask_weight': inpainting_mask_weight,
+        'inpainting_mask_weight': main_config.inpainting_mask_weight,
         'inverse_inpainting_mask': inverse_inpainting_mask,
         'mask_source': main_config.mask_source,
         'model_path': model_config.model_path,
@@ -468,7 +467,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'cb_fixed_code': main_config.cb_fixed_code,
         'cb_norm_latent': main_config.cb_norm_latent,
         'guidance_use_start_code': main_config.guidance_use_start_code,
-        'controlnet_preprocess': controlnet_preprocess,
+        'controlnet_preprocess': main_config.controlnet_preprocess,
         'small_controlnet_model_path': model_config.small_controlnet_model_path,
         'use_scale': main_config.use_scale,
         'g_invert_mask': main_config.g_invert_mask,
@@ -605,7 +604,7 @@ import contextlib
 
 none_context = contextlib.nullcontext()
 
-def masked_callback(args, callback_steps, masks, init_latent, start_code, config: MainConfig):
+def masked_callback(args, callback_steps, masks, init_latent,  config: MainConfig):
     # print('callback_step', callback_step)
     # print([o.shape for o in masks])
     init_latent = init_latent.clone()
@@ -628,7 +627,7 @@ def masked_callback(args, callback_steps, masks, init_latent, start_code, config
     if mask is not None:
         # PIL.Image.fromarray(np.repeat(mask.clone().cpu().numpy()[0,0,...][...,None],3, axis=2).astype('uint8')*255).save(f'{root_dir}/{args["i"]}.jpg')
         if config.cb_use_start_code:
-            noise = start_code
+            noise = config.start_code
         else:
             noise = torch.randn_like(args['x'])
         noise = noise * args['sigma']
@@ -670,28 +669,13 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
            control_inpainting_mask=None, shuffle_source=None, ref_image=None, alpha_mask=None):
     seed_everything(seed)
     sd_model.cuda()
-    # global cfg_scale
+    #  cfg_scale
     if VERBOSE:
         print('seed', 'clip_guidance_scale', 'init_scale', 'init_latent_scale', 'clamp_grad', 'clamp_max',
               'init_image', 'skip_timesteps', 'cfg_scale')
         print(seed, clip_config.clip_guidance_scale, init_scale, init_latent_scale, clip_config.clamp_grad,
               clip_config.clamp_max, init_image, skip_timesteps, cfg_scale)
-    global start_code, inpainting_mask_weight, inverse_inpainting_mask, start_code_cb, guidance_start_code
-    global pred_noise, controlnet_preprocess
-    # global frame_num
-    global normalize_latent
-    global first_latent
-    global first_latent_source
-    global use_karras_noise
-    global end_karras_ramp_early
-    global latent_fixed_norm
-    global latent_norm_4d
-    global latent_fixed_mean
-    global latent_fixed_std
-    global n_mean_avg
-    global n_std_avg
-    global reference_latent
-
+    global  inpainting_mask_weight, inverse_inpainting_mask, start_code_cb, guidance_start_code
     batch_size = num_samples = 1
     scale = cfg_scale
 
@@ -730,12 +714,11 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                 init_image_sd = None
                 x0 = init_latent
 
-    reference_latent = None
     if ref_image is not None and ref_config.reference_active:
         if os.path.exists(ref_image):
             with torch.no_grad(), torch.cuda.amp.autocast():
                 reference_img = load_img_sd(ref_image, size=(W, H)).cuda()
-                reference_latent = sd_model.get_first_stage_encoding(sd_model.encode_first_stage(reference_img))
+                config.reference_latent = sd_model.get_first_stage_encoding(sd_model.encode_first_stage(reference_img))
         else:
             print('Failed to load reference image')
             ref_image = None
@@ -750,43 +733,43 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
         print('Replacing init image for cond fn')
         init_image_sd = load_img_sd(init_grad_img, size=(W, H)).cuda()
 
-    if config.blend_latent_to_init > 0. and first_latent is not None:
-        print('Blending to latent ', first_latent_source)
-        x0 = x0 * (1 - config.blend_latent_to_init) + config.blend_latent_to_init * first_latent
-    if normalize_latent != 'off' and first_latent is not None:
+    if config.blend_latent_to_init > 0. and config.first_latent is not None:
+        print('Blending to latent ', config.first_latent_source)
+        x0 = x0 * (1 - config.blend_latent_to_init) + config.blend_latent_to_init * config.first_latent
+    if config.normalize_latent != 'off' and config.first_latent is not None:
         if VERBOSE:
             print('norm to 1st latent')
-            print('latent source - ', first_latent_source)
+            print('latent source - ', config.first_latent_source)
         # noise2 - target
         # noise - modified
 
-        if latent_norm_4d:
-            n_mean = first_latent.mean(dim=(2, 3), keepdim=True)
-            n_std = first_latent.std(dim=(2, 3), keepdim=True)
+        if config.latent_norm_4d:
+            n_mean = config.first_latent.mean(dim=(2, 3), keepdim=True)
+            n_std = config.first_latent.std(dim=(2, 3), keepdim=True)
         else:
-            n_mean = first_latent.mean()
-            n_std = first_latent.std()
+            n_mean = config.first_latent.mean()
+            n_std = config.first_latent.std()
 
-        if n_mean_avg is None and n_std_avg is None:
-            n_mean_avg = n_mean.clone().detach().cpu().numpy()[0, :, 0, 0]
-            n_std_avg = n_std.clone().detach().cpu().numpy()[0, :, 0, 0]
+        if config.n_mean_avg is None and config.n_std_avg is None:
+            config.n_mean_avg = n_mean.clone().detach().cpu().numpy()[0, :, 0, 0]
+            config.n_std_avg = n_std.clone().detach().cpu().numpy()[0, :, 0, 0]
         else:
-            n_mean_avg = n_mean_avg * config.n_smooth + (1 - config.n_smooth) * n_mean.clone().detach().cpu().numpy()[0, :, 0, 0]
-            n_std_avg = n_std_avg * config.n_smooth + (1 - config.n_smooth) * n_std.clone().detach().cpu().numpy()[0, :, 0, 0]
+            config.n_mean_avg = config.n_mean_avg * config.n_smooth + (1 - config.n_smooth) * n_mean.clone().detach().cpu().numpy()[0, :, 0, 0]
+            config.n_std_avg = config.n_std_avg * config.n_smooth + (1 - config.n_smooth) * n_std.clone().detach().cpu().numpy()[0, :, 0, 0]
 
         if VERBOSE:
-            print('n_stats_avg (mean, std): ', n_mean_avg, n_std_avg)
-        if normalize_latent == 'user_defined':
-            n_mean = latent_fixed_mean
+            print('n_stats_avg (mean, std): ', config.n_mean_avg, config.n_std_avg)
+        if config.normalize_latent == 'user_defined':
+            n_mean = config.latent_fixed_mean
             if isinstance(n_mean, list) and len(n_mean) == 4: n_mean = np.array(n_mean)[None, :, None, None]
-            n_std = latent_fixed_std
+            n_std = config.latent_fixed_std
             if isinstance(n_std, list) and len(n_std) == 4: n_std = np.array(n_std)[None, :, None, None]
-        if latent_norm_4d:
+        if config.latent_norm_4d:
             n2_mean = x0.mean(dim=(2, 3), keepdim=True)
         else:
             n2_mean = x0.mean()
         x0 = x0 - (n2_mean - n_mean)
-        if latent_norm_4d:
+        if config.latent_norm_4d:
             n2_std = x0.std(dim=(2, 3), keepdim=True)
         else:
             n2_std = x0.std()
@@ -815,7 +798,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                         c = prompt_parser.get_learned_conditioning(sd_model, prompts, ddim_steps)
 
                         shape = [C, H // f, W // f]
-                        if use_karras_noise:
+                        if config.use_karras_noise:
 
                             rho = 7.
                             # 14.6146
@@ -831,7 +814,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                             )
                             sigmas = K.sampling.get_sigmas_karras(
                                 n=steps,
-                                sigma_min=premature_sigma_min if end_karras_ramp_early else sigma_min_nominal,
+                                sigma_min=premature_sigma_min if config.end_karras_ramp_early else sigma_min_nominal,
                                 sigma_max=sigma_max,
                                 rho=rho,
                                 device='cuda',
@@ -924,7 +907,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                             print(models)
                         else:
                             models = model_version
-                        if not controlnet_preprocess and 'control_' in model_version:
+                        if not config.controlnet_preprocess and 'control_' in model_version:
                             # if multiple cond models without preprocessing - add input to all models
                             if model_version == 'control_multi':
                                 for i in models:
@@ -946,7 +929,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                 models = [o for o in models if o != 'control_sd15_temporalnet']
                                 if VERBOSE: print('models after removing temp', models)
 
-                        if controlnet_preprocess and 'control_' in model_version:
+                        if config.controlnet_preprocess and 'control_' in model_version:
                             if 'control_sd15_face' in models:
 
                                 detected_map = generate_annotation(input_image, config.max_faces)
@@ -1166,7 +1149,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                 if inverse_inpainting_mask: cond_image = 1 - cond_image
                                 cond_image = Image.fromarray((cond_image * 255).astype('uint8'))
 
-                            batch = make_batch_sd(Image.open(init_image).resize((W, H)), cond_image, txt=prompt, device=device, num_samples=1, inpainting_mask_weight=inpainting_mask_weight)
+                            batch = make_batch_sd(Image.open(init_image).resize((W, H)), cond_image, txt=prompt, device=device, num_samples=1, inpainting_mask_weight=config.inpainting_mask_weight)
                             c_cat = list()
                             for ck in sd_model.concat_keys:
                                 cc = batch[ck].float()
@@ -1187,12 +1170,12 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                         if skip_timesteps > 0:
                             # using non-random start code
                             if config.fixed_code:
-                                if start_code is None:
+                                if config.start_code is None:
                                     if VERBOSE: print('init start code')
-                                    start_code = torch.randn_like(x0)
+                                    config.start_code = torch.randn_like(x0)
                                 if not config.use_legacy_fixed_code:
                                     rand_code = torch.randn_like(x0)
-                                    combined_code = ((1 - config.code_randomness) * start_code + config.code_randomness * rand_code) / (
+                                    combined_code = ((1 - config.code_randomness) * config.start_code + config.code_randomness * rand_code) / (
                                             (config.code_randomness ** 2 + (1 - config.code_randomness) ** 2) ** 0.5)
                                     noise = combined_code - (x0 / sigmas[0])
                                     noise = noise * sigmas[ddim_steps - t_enc - 1]
@@ -1202,24 +1185,24 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                     normalize_code = True
                                     if normalize_code:
                                         noise2 = torch.randn_like(x0) * sigmas[ddim_steps - t_enc - 1]
-                                        if latent_norm_4d:
+                                        if config.latent_norm_4d:
                                             n_mean = noise2.mean(dim=(2, 3), keepdim=True)
                                         else:
                                             n_mean = noise2.mean()
-                                        if latent_norm_4d:
+                                        if config.latent_norm_4d:
                                             n_std = noise2.std(dim=(2, 3), keepdim=True)
                                         else:
                                             n_std = noise2.std()
 
                                     noise = torch.randn_like(x0)
-                                    noise = (start_code * (1 - config.code_randomness) + (config.code_randomness) * noise) * sigmas[ddim_steps - t_enc - 1]
+                                    noise = (config.start_code * (1 - config.code_randomness) + (config.code_randomness) * noise) * sigmas[ddim_steps - t_enc - 1]
                                     if normalize_code:
-                                        if latent_norm_4d:
+                                        if config.latent_norm_4d:
                                             n2_mean = noise.mean(dim=(2, 3), keepdim=True)
                                         else:
                                             n2_mean = noise.mean()
                                         noise = noise - (n2_mean - n_mean)
-                                        if latent_norm_4d:
+                                        if config.latent_norm_4d:
                                             n2_std = noise.std(dim=(2, 3), keepdim=True)
                                         else:
                                             n2_std = noise.std()
@@ -1265,10 +1248,10 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                 x = torch.randn([batch_size, *shape], device=device)
                             x = x * sigmas[0]
                             samples_ddim = config.sampler(model_fn, x, sigmas, extra_args=extra_args, callback=callback_partial)
-                        if first_latent is None:
+                        if config.first_latent is None:
                             if VERBOSE: print('setting 1st latent')
-                            first_latent_source = 'samples ddim (1st frame output)'
-                            first_latent = samples_ddim
+                            config.first_latent_source = 'samples ddim (1st frame output)'
+                            config.first_latent = samples_ddim
 
                         if config.offload_model:
                             sd_model.model.cpu()

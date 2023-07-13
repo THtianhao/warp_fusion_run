@@ -384,6 +384,8 @@ class MainConfig:
     steps_per_checkpoint = None
     max_frames = 0
 
+    reference_latent = None
+
     key_frames = True
     interp_spline = 'Linear'
     perlin_init = False
