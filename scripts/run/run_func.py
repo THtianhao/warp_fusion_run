@@ -38,8 +38,6 @@ from scripts.video_process.color_transfor_func import warp, warp_lat, k_means_wa
 from scripts.video_process.video_config import VideoConfig
 from scripts.model_process.mode_func import get_image_embed, spherical_dist_loss
 
-
-
 def do_run(main_config: MainConfig,
            video_config: VideoConfig,
            content_config: ContentAwareConfig,
@@ -689,8 +687,8 @@ def do_3d_step(img_filepath, frame_num, main_config: MainConfig, video_config: V
         frame2 = apply_mask(frame2, frame_num, main_config.background, main_config.background_source, main_config, video_config, sd_model)
         # frame2.save(f'frame2_{frame_num}.jpg')
     # init_image = 'warped.png'
-    flow_blend = get_scheduled_arg(frame_num, main_config.flow_blend_schedule)
-    printf('flow_blend: ', flow_blend, 'frame_num:', frame_num, 'len(flow_blend_schedule):', len(main_config.flow_blend_schedule))
+    main_config.flow_blend = get_scheduled_arg(frame_num, main_config.flow_blend_schedule)
+    printf('flow_blend: ', main_config.flow_blend, 'frame_num:', frame_num, 'len(flow_blend_schedule):', len(main_config.flow_blend_schedule))
     weights_path = None
     forward_clip = main_config.forward_weights_clip
     if main_config.check_consistency:
@@ -713,7 +711,7 @@ def do_3d_step(img_filepath, frame_num, main_config: MainConfig, video_config: V
             warped = warp(main_config, prev,
                           frame2,
                           flo_path,
-                          blend=flow_blend,
+                          blend=main_config.flow_blend,
                           weights_path=weights_path,
                           forward_clip=forward_clip,
                           pad_pct=main_config.padding_ratio,
@@ -773,7 +771,6 @@ def do_3d_step(img_filepath, frame_num, main_config: MainConfig, video_config: V
         # warped.save(f'warped_{frame_num}.jpg')
 
     return warped
-
 
 def get_frame_from_color_mode(mode, offset, frame_num, video_config: VideoConfig, args):
     if mode == 'color_video':
@@ -913,7 +910,7 @@ def perlin(width, height, scale=10, device=None):
 def interp(t):
     return 3 * t ** 2 - 2 * t ** 3
 
-def save_settings(main_config: MainConfig, skip_save=False):
+def save_settings(main_config: MainConfig, video_config: VideoConfig, skip_save=False):
     settings_out = batchFolder + f"/settings"
     os.makedirs(settings_out, exist_ok=True)
     setting_list = {
@@ -933,15 +930,15 @@ def save_settings(main_config: MainConfig, skip_save=False):
         'diffusion_model': diffusion_model,
         'diffusion_steps': main_config.diffusion_steps,
         'max_frames': main_config.max_frames,
-        'video_init_path': main_config.video_init_path,
-        'extract_nth_frame': main_config.extract_nth_frame,
-        'flow_video_init_path': main_config.flow_video_init_path,
-        'flow_extract_nth_frame': main_config.flow_extract_nth_frame,
-        'video_init_seed_continuity': main_config.video_init_seed_continuity,
+        'video_init_path': video_config.video_init_path,
+        'extract_nth_frame': video_config.extract_nth_frame,
+        'flow_video_init_path': video_config.flow_video_init_path,
+        'flow_extract_nth_frame': video_config.flow_extract_nth_frame,
+        'video_init_seed_continuity': video_config.video_init_seed_continuity,
         'turbo_mode': main_config.turbo_mode,
         'turbo_steps': main_config.turbo_steps,
         'turbo_preroll': main_config.turbo_preroll,
-        'flow_warp': main_config.flow_warp,
+        'flow_warp': video_config.flow_warp,
         'check_consistency': main_config.check_consistency,
         'turbo_frame_skips_steps': main_config.turbo_frame_skips_steps,
         'forward_weights_clip': main_config.forward_weights_clip,

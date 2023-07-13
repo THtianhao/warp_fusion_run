@@ -22,7 +22,6 @@ from scripts.video_process.flow_datasets import flowDataset
 from scripts.video_process.video_config import VideoConfig
 
 def generate_optical_flow(bean: VideoConfig):
-    # if (animation_mode == 'Video Input') and (flow_warp):
     def flow_batch(i, batch, pool):
         with torch.cuda.amp.autocast():
             batch = batch[0]
@@ -62,78 +61,77 @@ def generate_optical_flow(bean: VideoConfig):
                     # pool.apply_async(joint_mask.save, cc_path)
 
     raft_model = None
-    in_path = bean.videoFramesFolder if not bean.flow_video_init_path else bean.flowVideoFramesFolder
-    flo_fwd_folder = flo_folder = in_path + f'_out_flo_fwd/{side_x}_{side_y}/'
-    print(flo_folder)
-    flows = glob(flo_folder + '/*.*')
-    if (len(flows) > 0) and not bean.force_flow_generation: print(
-        f'Skipping flow generation:\nFound {len(flows)} existing flow files in current working folder: {flo_folder}.\nIf you wish to generate new flow files, check force_flow_generation and run this cell again.')
+    print(bean.flo_folder)
+    if (bean.animation_mode == 'Video Input') and (bean.flow_warp):
+        flows = glob(bean.flo_folder + '/*.*')
+        if (len(flows) > 0) and not bean.force_flow_generation: print(
+            f'Skipping flow generation:\nFound {len(flows)} existing flow files in current working folder: {bean.flo_folder}.\nIf you wish to generate new flow files, check force_flow_generation and run this cell again.')
 
-    if (len(flows) == 0) or bean.force_flow_generation:
-        ds = flowDataset(in_path, normalize=not bean.use_jit_raft)
+        if (len(flows) == 0) or bean.force_flow_generation:
+            ds = flowDataset(bean.in_path, normalize=not bean.use_jit_raft)
 
-        frames = sorted(glob(in_path + '/*.*'))
-        if len(frames) < 2:
-            print(f'WARNING!\nCannot create flow maps: Found {len(frames)} frames extracted from your video input.\nPlease check your video path.')
-        if len(frames) >= 2:
-            dl = DataLoader(ds, num_workers=bean.num_workers)
-            if bean.use_jit_raft:
-                if bean.flow_lq:
-                    raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_half.jit').eval()
-                # raft_model = torch.nn.DataParallel(RAFT(args2))
+            frames = sorted(glob(bean.in_path + '/*.*'))
+            if len(frames) < 2:
+                print(f'WARNING!\nCannot create flow maps: Found {len(frames)} frames extracted from your video input.\nPlease check your video path.')
+            if len(frames) >= 2:
+                dl = DataLoader(ds, num_workers=bean.num_workers)
+                if bean.use_jit_raft:
+                    if bean.flow_lq:
+                        raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_half.jit').eval()
+                    # raft_model = torch.nn.DataParallel(RAFT(args2))
+                    else:
+                        raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_fp32.jit').eval()
+                    # raft_model.load_state_dict(torch.load(f'{root_path}/RAFT/models/raft-things.pth'))
+                    # raft_model = raft_model.module.cuda().eval()
                 else:
-                    raft_model = torch.jit.load(f'{root_dir}/WarpFusion/raft/raft_fp32.jit').eval()
-                # raft_model.load_state_dict(torch.load(f'{root_path}/RAFT/models/raft-things.pth'))
-                # raft_model = raft_model.module.cuda().eval()
-            else:
-                if raft_model is None or not bean.compile_raft:
-                    from torchvision.models.optical_flow import Raft_Large_Weights
-                    from torchvision.models.optical_flow import raft_large
+                    if raft_model is None or not bean.compile_raft:
+                        from torchvision.models.optical_flow import Raft_Large_Weights
+                        from torchvision.models.optical_flow import raft_large
 
-                    raft_weights = Raft_Large_Weights.C_T_SKHT_V1
-                    raft_device = "cuda" if torch.cuda.is_available() else "cpu"
+                        raft_weights = Raft_Large_Weights.C_T_SKHT_V1
+                        raft_device = "cuda" if torch.cuda.is_available() else "cpu"
 
-                    raft_model = raft_large(weights=raft_weights, progress=False).to(raft_device)
-                    # raft_model = raft_small(weights=Raft_Small_Weights.DEFAULT, progress=False).to(raft_device)
-                    raft_model = raft_model.eval()
-                    # if gpu != 'T4' and compile_raft: raft_model = torch.compile(raft_model)
-                    # if flow_lq:
-                    #     raft_model = raft_model.half()
+                        raft_model = raft_large(weights=raft_weights, progress=False).to(raft_device)
+                        # raft_model = raft_small(weights=Raft_Small_Weights.DEFAULT, progress=False).to(raft_device)
+                        raft_model = raft_model.eval()
+                        # if gpu != 'T4' and compile_raft: raft_model = torch.compile(raft_model)
+                        # if flow_lq:
+                        #     raft_model = raft_model.half()
 
-            temp_flo = in_path + '_temp_flo'
-            # flo_fwd_folder = in_path+'_out_flo_fwd'
-            flo_fwd_folder = in_path + f'_out_flo_fwd/{side_x}_{side_y}/'
-            for f in pathlib.Path(f'{flo_fwd_folder}').glob('*.*'):
-                f.unlink()
+                temp_flo = bean.in_path + '_temp_flo'
+                # flo_fwd_folder = in_path+'_out_flo_fwd'
+                flo_fwd_folder = bean.in_path + f'_out_flo_fwd/{side_x}_{side_y}/'
+                for f in pathlib.Path(f'{flo_fwd_folder}').glob('*.*'):
+                    f.unlink()
 
-            os.makedirs(flo_fwd_folder, exist_ok=True)
-            os.makedirs(temp_flo, exist_ok=True)
-            cc_path = f'{root_dir}/flow_tools/check_consistency.py'
-            with torch.no_grad():
-                p = Pool(bean.threads)
-                for i, batch in enumerate(tqdm(dl)):
-                    flow_batch(i, batch, p)
-                p.close()
-                p.join()
+                os.makedirs(flo_fwd_folder, exist_ok=True)
+                os.makedirs(temp_flo, exist_ok=True)
+                cc_path = f'{root_dir}/flow_tools/check_consistency.py'
+                with torch.no_grad():
+                    p = Pool(bean.threads)
+                    for i, batch in enumerate(tqdm(dl)):
+                        flow_batch(i, batch, p)
+                    p.close()
+                    p.join()
 
-            del raft_model, p, dl, ds
-            gc.collect()
-            if bean.check_consistency and bean.use_legacy_cc:
-                fwd = f"{flo_fwd_folder}/*jpg.npy"
-                bwd = f"{flo_fwd_folder}/*jpg_12.npy"
+                del raft_model, p, dl, ds
+                gc.collect()
+                if bean.check_consistency and bean.use_legacy_cc:
+                    fwd = f"{flo_fwd_folder}/*jpg.npy"
+                    bwd = f"{flo_fwd_folder}/*jpg_12.npy"
 
-                if bean.reverse_cc_order:
-                    # old version, may be incorrect
-                    print('Doing bwd->fwd cc check')
-                    cmd = f'python {cc_path} --flow_fwd {fwd} --flow_bwd {bwd} --output {flo_fwd_folder} --image_output --output_postfix=-"21_cc" --blur = 0. --save_separate_channels --skip_numpy_output'
-                    subprocess.run(cmd)
-                else:
-                    print('Doing fwd->bwd cc check')
-                    cmd = f'python {cc_path} --flow_fwd {bwd} --flow_bwd {fwd} --output {flo_fwd_folder} --image_output --output_postfix=-"21_cc" --blur = 0. --save_separate_channels --skip_numpy_output'
-                    subprocess.run(cmd)
-                # delete forward flow
-                # for f in pathlib.Path(flo_fwd_folder).glob('*jpg_12.npy'):
-                #   f.unlink()
+                    if bean.reverse_cc_order:
+                        # old version, may be incorrect
+                        print('Doing bwd->fwd cc check')
+                        cmd = f'python {cc_path} --flow_fwd {fwd} --flow_bwd {bwd} --output {flo_fwd_folder} --image_output --output_postfix=-"21_cc" --blur = 0. --save_separate_channels --skip_numpy_output'
+                        subprocess.run(cmd)
+                    else:
+                        print('Doing fwd->bwd cc check')
+                        cmd = f'python {cc_path} --flow_fwd {bwd} --flow_bwd {fwd} --output {flo_fwd_folder} --image_output --output_postfix=-"21_cc" --blur = 0. --save_separate_channels --skip_numpy_output'
+                        subprocess.run(cmd)
+                    # delete forward flow
+                    # for f in pathlib.Path(flo_fwd_folder).glob('*jpg_12.npy'):
+                    #   f.unlink()
     flo_imgs = glob(flo_fwd_folder + '/*.jpg.jpg')[:5]
     vframes = []
     for flo_img in flo_imgs:

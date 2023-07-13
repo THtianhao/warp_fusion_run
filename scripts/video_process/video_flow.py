@@ -21,11 +21,6 @@ if platform.system() != 'Linux' and not os.path.exists("ffmpeg.exe"):
     print("Warning! ffmpeg.exe not found. Please download ffmpeg and place it in current working dir.")
 def set_video_path(config:VideoConfig):
     if config.animation_mode == 'Video Input':
-        config.in_path = config.videoFramesFolder if not config.flow_video_init_path else config.flowVideoFramesFolder
-        config.flo_folder = config.in_path + '_out_flo_fwd'
-        config.temp_flo = config.in_path + '_temp_flo'
-        config.flo_fwd_folder = config.in_path + '_out_flo_fwd'
-        config.flo_bck_folder = config.in_path + '_out_flo_bck'
         postfix = f'{generate_file_hash(config.video_init_path)[:10]}_{config.start_frame}_{config.end_frame_orig}_{config.extract_nth_frame}'
         if config.flow_video_init_path:
             flow_postfix = f'{generate_file_hash(config.flow_video_init_path)[:10]}_{config.flow_extract_nth_frame}'
@@ -47,7 +42,11 @@ def set_video_path(config:VideoConfig):
 
         os.makedirs(config.controlnetDebugFolder, exist_ok=True)
         os.makedirs(config.recNoiseCacheFolder, exist_ok=True)
-
+        config.in_path = config.videoFramesFolder if not config.flow_video_init_path else config.flowVideoFramesFolder
+        config.flo_folder = config.in_path + '_out_flo_fwd'
+        config.temp_flo = config.in_path + '_temp_flo'
+        config.flo_fwd_folder = config.in_path + '_out_flo_fwd'
+        config.flo_bck_folder = config.in_path + '_out_flo_bck'
 def extra_video_frame(config: VideoConfig):
         extractFrames(config.video_init_path, config.videoFramesFolder, config.extract_nth_frame, config.start_frame, config.end_frame)
         if config.flow_video_init_path:

@@ -367,7 +367,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'turbo_mode': main_config.turbo_mode,
         'turbo_steps': main_config.turbo_steps,
         'turbo_preroll': main_config.turbo_preroll,
-        'flow_warp': main_config.flow_warp,
+        'flow_warp': video_config.flow_warp,
         'check_consistency': main_config.check_consistency,
         'turbo_frame_skips_steps': main_config.turbo_frame_skips_steps,
         'forward_weights_clip': main_config.forward_weights_clip,

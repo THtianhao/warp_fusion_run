@@ -13,8 +13,6 @@ class MainConfig:
     # @dataclass
     # class NoGuiConfig:
     # @title Flow and turbo settings
-    # @markdown #####**Video Optical Flow Settings:**
-    flow_warp = True  # @param {type: 'boolean'}
     # cal optical flow from video frames and warp prev frame with flow
     flow_blend = 0.999
     ##@param {type: 'number'} #0 - take next frame, 1 - take prev warped frame
