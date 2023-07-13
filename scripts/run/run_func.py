@@ -22,6 +22,7 @@ from tqdm import tqdm
 import torchvision.transforms.functional as TF
 
 from modules.devices import device
+from scripts.captioning_process.captioning_config import CaptioningConfig
 from scripts.captioning_process.generate_key_frame import get_caption
 from scripts.clip_process.clip_config import ClipConfig
 from scripts.content_ware_process.content_aware_config import ContentAwareConfig
@@ -43,6 +44,7 @@ def do_run(main_config: MainConfig,
            content_config: ContentAwareConfig,
            model_config: ModelConfig,
            ref_config: ReferenceConfig,
+           captioning_config: CaptioningConfig,
            clip_config: ClipConfig):
     sd_model = model_config.sd_mode
     blend_json_schedules = main_config.blend_json_schedules
@@ -63,7 +65,7 @@ def do_run(main_config: MainConfig,
 
         # Print Frame progress if animation mode is on
         if args.animation_mode != "None":
-            display.display(batchBar.container)
+            # display.display(batchBar.container)
             batchBar.n = frame_num
             batchBar.update(1)
             batchBar.refresh()
@@ -300,7 +302,7 @@ def do_run(main_config: MainConfig,
                     print('used_loras, used_loras_weights', used_loras, used_loras_weights)
                 # used_loras_weights = [o for o in used_loras_weights if o is not None else 0.]
                 load_loras(used_loras, used_loras_weights)
-                caption = get_caption(frame_num)
+                caption = get_caption(frame_num, captioning_config.videoFramesCaptions)
                 if caption:
                     # print('args.prompt_series',args.prompts_series[frame_num])
                     if '{caption}' in text_prompt[0]:
@@ -750,7 +752,7 @@ def do_3d_step(img_filepath, frame_num, main_config: MainConfig, video_config: V
         warped = warp_lat(main_config, sd_model, prev,
                           frame2,
                           flo_path,
-                          blend=flow_blend,
+                          blend=main_config.flow_blend,
                           weights_path=weights_path,
                           forward_clip=forward_clip,
                           pad_pct=main_config.padding_ratio,

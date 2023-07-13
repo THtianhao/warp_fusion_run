@@ -10,3 +10,10 @@ class CaptioningConfig:
     diff_thresh = 0.33  # @param {'type':'number'}
     # @markdown This option only works with  keyframe source == Every n-th frame
     nth_frame = 60  # @param {'type':'number'}
+
+    # @markdown Remaps keyframes based on selected offset mode
+    offset_mode = 'Fixed'  # @param ['Fixed', 'Between Keyframes', 'None']
+    # @markdown Only works with offset_mode == Fixed
+    fixed_offset = 0  # @param {'type':'number'}
+
+    videoFramesCaptions = ''

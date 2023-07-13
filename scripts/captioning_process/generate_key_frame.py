@@ -45,12 +45,8 @@ def generate_key_frame(config: CaptioningConfig, videoFramesFolder, diff):
         caption_keyframes = config.user_defined_keyframes
     if config.keyframe_source == 'Every n-th frame':
         caption_keyframes = list(range(1, len(inputFrames), config.nth_frame))
-    # @markdown Remaps keyframes based on selected offset mode
-    offset_mode = 'Fixed'  # @param ['Fixed', 'Between Keyframes', 'None']
-    # @markdown Only works with offset_mode == Fixed
-    fixed_offset = 0  # @param {'type':'number'}
 
-    videoFramesCaptions = videoFramesFolder + 'Captions'
+    config.videoFramesCaptions = videoFramesFolder + 'Captions'
     if config.make_captions and caption_keyframes is not None:
         try:
             config.blip_model

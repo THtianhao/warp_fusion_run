@@ -132,7 +132,7 @@ def generate_optical_flow(bean: VideoConfig):
                     # delete forward flow
                     # for f in pathlib.Path(flo_fwd_folder).glob('*jpg_12.npy'):
                     #   f.unlink()
-    flo_imgs = glob(flo_fwd_folder + '/*.jpg.jpg')[:5]
+    flo_imgs = glob(bean.flo_fwd_folder + '/*.jpg.jpg')[:5]
     vframes = []
     for flo_img in flo_imgs:
         hframes = []
@@ -156,6 +156,7 @@ def generate_optical_flow(bean: VideoConfig):
             pass
         v_imgs = vstack(hframes)
         vframes.append(v_imgs)
-    preview = hstack(vframes)
-    del vframes, hframes
-    fit(preview, 1024)
+    if vframes:
+        preview = hstack(vframes)
+        del vframes, hframes
+        fit(preview, 1024)
