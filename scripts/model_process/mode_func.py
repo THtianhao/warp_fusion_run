@@ -51,7 +51,7 @@ def make_cond_model_fn(model, cond_fn):
         with torch.enable_grad():
             # with torch.no_grad():
             # x = x.detach().requires_grad_()
-            denoised = model(x, sigma, **kwargs);  # print(denoised.requires_grad)
+            denoised = model(x, sigma, **kwargs)  # print(denoised.requires_grad)
             # with torch.enable_grad():
             # print(sigma**0.5, sigma, sigma**2)
             denoised = denoised.detach().requires_grad_()

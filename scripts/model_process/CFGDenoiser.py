@@ -6,13 +6,14 @@ from modules import prompt_parser
 from scripts.model_process.model_env import model_version
 
 class CFGDenoiser(nn.Module):
-    def __init__(self, model, img_zero_uncond, controlnet_multimodel_mode ):
+    def __init__(self, model, img_zero_uncond, controlnet_multimodel_mode, loaded_controlnets):
         super().__init__()
+        self.loaded_controlnets = loaded_controlnets
         self.inner_model = model
         self.img_zero_uncond = img_zero_uncond
         self.controlnet_multimodel_mode = controlnet_multimodel_mode
 
-    def forward(self, x, sigma, uncond, cond, cond_scale, loaded_controlnets, image_cond=None):
+    def forward(self, x, sigma, uncond, cond, cond_scale, image_cond=None):
         cond = prompt_parser.reconstruct_cond_batch(cond, 0)
         uncond = prompt_parser.reconstruct_cond_batch(uncond, 0)
         x_in = torch.cat([x] * 2)
@@ -46,7 +47,7 @@ class CFGDenoiser(nn.Module):
                 uncond, cond = self.inner_model(x_in, sigma_in, cond={"c_crossattn": [cond_in],
                                                                       'c_concat': img_in,
                                                                       'controlnet_multimodel': self.controlnet_multimodel,
-                                                                      'loaded_controlnets': loaded_controlnets}).chunk(2)
+                                                                      'loaded_controlnets': self.loaded_controlnets}).chunk(2)
                 return uncond + (cond - uncond) * cond_scale
             if model_version == 'control_multi' and self.controlnet_multimodel_mode == 'external':
 
@@ -66,7 +67,7 @@ class CFGDenoiser(nn.Module):
                         pass
                     if weights[i] != 0:
                         controlnet_settings = self.controlnet_multimodel[controlnet]
-                        self.inner_model.inner_model.control_model = loaded_controlnets[controlnet]
+                        self.inner_model.inner_model.control_model = self.loaded_controlnets[controlnet]
                         uncond, cond = self.inner_model(x_in, sigma_in, cond={"c_crossattn": [cond_in],
                                                                               'c_concat': [img_in]}).chunk(2)
                         if result is None:

@@ -68,4 +68,4 @@ if __name__ == "__main__":
     reference_control(ref_config, model_config.sd_mode, main_config.reference_latent)
     prepare_run(main_config)
     run_prepare_config(main_config,model_config,video_config,lora_embedding_config,content_aware_config)
-    do_run(main_config, video_config, content_aware_config, model_config, ref_config, clip_config)
+    do_run(main_config, video_config, content_aware_config, model_config, ref_config,captioning_config, clip_config)

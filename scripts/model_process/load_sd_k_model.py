@@ -20,7 +20,7 @@ import wget
 import k_diffusion
 import pickle
 
-def load_sd_and_k_fusion(config: ModelConfig, main_config:MainConfig):
+def load_sd_and_k_fusion(config: ModelConfig, main_config: MainConfig):
     if config.controlnet_models_dir.startswith('/content') or config.controlnet_models_dir == '':
         controlnet_models_dir = f"{root_dir}/ControlNet/models"
         print('You have a controlnet path set up for google drive, but we are not on Colab. Defaulting controlnet model path to ', controlnet_models_dir)
@@ -155,7 +155,7 @@ def load_sd_and_k_fusion(config: ModelConfig, main_config:MainConfig):
     else:
         config.model_wrap = k_diffusion.external.CompVisDenoiser(sd_model, quantize=quantize)
     config.sigma_min, config.sigma_max = config.model_wrap.sigmas[0].item(), config.model_wrap.sigmas[-1].item()
-    config.model_wrap_cfg = CFGDenoiser(config.model_wrap, config.img_zero_uncond, main_config.controlnet_multimodel_mode)
+    config.model_wrap_cfg = CFGDenoiser(config.model_wrap, config.img_zero_uncond, main_config.controlnet_multimodel_mode, main_config.loaded_controlnets)
     if model_version == 'v1_instructpix2pix':
         config.model_wrap_cfg = InstructPix2PixCFGDenoiser(config.model_wrap)
     try:
@@ -187,4 +187,3 @@ def load_sd_and_k_fusion(config: ModelConfig, main_config:MainConfig):
         print(e)
         # pass
     config.sd_mode = sd_model
-

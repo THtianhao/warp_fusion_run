@@ -7,6 +7,7 @@ import numpy
 import open_clip
 
 from annotator.util import resize_image, HWC3, nms
+from k_diffusion.sampling import sample_euler
 from modules import prompt_parser
 from scripts.clip_process.clip_config import ClipConfig
 from scripts.clip_process.clip_process import clip_type, clip_pretrain
@@ -1230,7 +1231,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                 # print(xi.mean(), xi.std(), xi.min(), xi.max())
                                 sigma_sched = sigmas[ddim_steps - t_enc - 1:]
                                 # sigma_sched = sigmas[ddim_steps - t_enc:]
-                                samples_ddim = config.sampler(model_fn, xi, sigma_sched, extra_args=extra_args, callback=callback_partial)
+                                samples_ddim = sample_euler(model_fn, xi, sigma_sched, extra_args=extra_args, callback=callback_partial)
                             else:
                                 samples_ddim = x0
                         else:
