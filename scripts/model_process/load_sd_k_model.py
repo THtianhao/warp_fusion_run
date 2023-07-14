@@ -7,7 +7,7 @@ import os
 
 import torch
 
-from guided_diffusion.nn import timestep_embedding
+from ldm.modules.diffusionmodules.util import timestep_embedding
 from scripts.model_process.CFGDenoiser import CFGDenoiser
 from scripts.model_process.instruct_pix2_cfg_denoiser import InstructPix2PixCFGDenoiser
 from scripts.model_process.mode_func import cat8

@@ -7,7 +7,7 @@ from torch.nn import functional as F
 import torchvision.transforms as T
 
 
-batch_name = 'stable_warpfusion_0.15.0'  #@param{type: 'string'}
+batch_name = 'toto_test'  #@param{type: 'string'}
 steps = 50
 ##@param [25,50,100,150,250,500,1000]{type: 'raw', allow-input: true}
 # stop_early = 0  #@param{type: 'number'}
@@ -15,7 +15,7 @@ stop_early = 0
 stop_early = min(steps - 1, stop_early)
 #@markdown Specify desired output size here.\
 #@markdown Don't forget to rerun all steps after changing the width height (including forcing optical flow generation)
-width_height = [720, 1280]  #@param{type: 'raw'}
+width_height = [512,768]  #@param{type: 'raw'}
 width_height = [int(o) for o in width_height]
 clip_guidance_scale = 0  #
 tv_scale = 0

@@ -49,7 +49,7 @@ class VideoConfig:
 
     flow_warp = False
     check_consistency = True
-    force_flow_generation = False  # @param {type:'boolean'}
+    force_flow_generation = True  # @param {type:'boolean'}
 
     use_legacy_cc = False  # @param{'type':'boolean'}
     threads = 4  # @param {'type':'number'}
