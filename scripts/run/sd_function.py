@@ -664,12 +664,11 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
            init_scale, init_latent_scale, cond_image, cfg_scale, image_scale, config: MainConfig,
            video_config: VideoConfig, ref_config: ReferenceConfig, model_config: ModelConfig,
            content_config: ContentAwareConfig, clip_config: ClipConfig,
-           sd_model,
            cond_fn=None, init_grad_img=None, consistency_mask=None, frame_num=0,
            deflicker_src=None, prev_frame=None, rec_prompt=None, rec_frame=None,
            control_inpainting_mask=None, shuffle_source=None, ref_image=None, alpha_mask=None):
     seed_everything(seed)
-    sd_model.cuda()
+    model_config.sd_model.cuda()
     #  cfg_scale
     if VERBOSE:
         print('seed', 'clip_guidance_scale', 'init_scale', 'init_latent_scale', 'clamp_grad', 'clamp_max',
@@ -708,7 +707,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                 with torch.no_grad():
                     with torch.cuda.amp.autocast():
                         init_image_sd = load_img_sd(init_image, size=(W, H)).cuda()
-                        init_latent = sd_model.get_first_stage_encoding(sd_model.encode_first_stage(init_image_sd))
+                        init_latent = model_config.sd_model.get_first_stage_encoding(model_config.sd_model.encode_first_stage(init_image_sd))
                         x0 = init_latent
             if init_image.endswith('_lat.pt'):
                 init_latent = torch.load(init_image).cuda()
@@ -719,7 +718,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
         if os.path.exists(ref_image):
             with torch.no_grad(), torch.cuda.amp.autocast():
                 reference_img = load_img_sd(ref_image, size=(W, H)).cuda()
-                config.reference_latent = sd_model.get_first_stage_encoding(sd_model.encode_first_stage(reference_img))
+                config.reference_latent = model_config.sd_model.get_first_stage_encoding(model_config.sd_model.encode_first_stage(reference_img))
         else:
             print('Failed to load reference image')
             ref_image = None
@@ -728,7 +727,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
         if rec_frame is not None:
             with torch.cuda.amp.autocast():
                 rec_frame_img = load_img_sd(rec_frame, size=(W, H)).cuda()
-                rec_frame_latent = sd_model.get_first_stage_encoding(sd_model.encode_first_stage(rec_frame_img))
+                rec_frame_latent = model_config.sd_model.get_first_stage_encoding(model_config.sd_model.encode_first_stage(rec_frame_img))
 
     if init_grad_img is not None:
         print('Replacing init image for cond fn')
@@ -785,18 +784,18 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
     with torch.no_grad():
         with torch.cuda.amp.autocast():
             with precision_scope("cuda"):
-                scope = none_context if model_version == 'v1_inpainting' else sd_model.ema_scope()
+                scope = none_context if model_version == 'v1_inpainting' else model_config.sd_model.ema_scope()
                 with scope:
                     tic = time.time()
                     all_samples = []
                     uc = None
                     if True:
                         if scale != 1.0:
-                            uc = prompt_parser.get_learned_conditioning(sd_model, [neg_prompt], ddim_steps)
+                            uc = prompt_parser.get_learned_conditioning(model_config.sd_model, [neg_prompt], ddim_steps)
 
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
-                        c = prompt_parser.get_learned_conditioning(sd_model, prompts, ddim_steps)
+                        c = prompt_parser.get_learned_conditioning(model_config.sd_model, prompts, ddim_steps)
 
                         shape = [C, H // f, W // f]
                         if config.use_karras_noise:
@@ -842,7 +841,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                             deflicker_fn = partial(deflicker_loss, processed1=deflicker_src['processed1'][:, :, ::2, ::2],
                                                    raw1=deflicker_src['raw1'][:, :, ::2, ::2], raw2=deflicker_src['raw2'][:, :, ::2, ::2], criterion1=absdiff, criterion2=lpips_model)
                             for key in deflicker_src.keys():
-                                deflicker_src[key] = sd_model.get_first_stage_encoding(sd_model.encode_first_stage(deflicker_src[key]))
+                                deflicker_src[key] = model_config.sd_model.get_first_stage_encoding(model_config.sd_model.encode_first_stage(deflicker_src[key]))
                             deflicker_lat_fn = partial(deflicker_loss,
                                                        raw1=deflicker_src['raw1'], raw2=deflicker_src['raw2'], criterion1=absdiff, criterion2=rmse)
                         cond_fn_partial = partial(sd_cond_fn, init_image_sd=init_image_sd,
@@ -1141,8 +1140,8 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                     with torch.cuda.amp.autocast():
                                         input_image = Image.open(cond_image).resize(size=(W, H))
                                         input_image = 2 * torch.tensor(np.array(input_image)).float() / 255 - 1
-                                        input_image = rearrange(input_image, "h w c -> 1 c h w").to(sd_model.device)
-                                        depth_cond = sd_model.encode_first_stage(input_image).mode()
+                                        input_image = rearrange(input_image, "h w c -> 1 c h w").to(model_config.sd_model.device)
+                                        depth_cond = model_config.sd_model.encode_first_stage(input_image).mode()
 
                         if model_version == 'v1_inpainting':
                             print('using inpainting')
@@ -1152,13 +1151,13 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
 
                             batch = make_batch_sd(Image.open(init_image).resize((W, H)), cond_image, txt=prompt, device=device, num_samples=1, inpainting_mask_weight=config.inpainting_mask_weight)
                             c_cat = list()
-                            for ck in sd_model.concat_keys:
+                            for ck in model_config.sd_model.concat_keys:
                                 cc = batch[ck].float()
-                                if ck != sd_model.masked_image_key:
+                                if ck != model_config.sd_model.masked_image_key:
 
                                     cc = torch.nn.functional.interpolate(cc, scale_factor=1 / 8)
                                 else:
-                                    cc = sd_model.get_first_stage_encoding(sd_model.encode_first_stage(cc))
+                                    cc = model_config.sd_model.get_first_stage_encoding(model_config.sd_model.encode_first_stage(cc))
                                 c_cat.append(cc)
                             depth_cond = torch.cat(c_cat, dim=1)
                         # print('depth cond', depth_cond)
@@ -1216,7 +1215,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                     rand_noise = torch.randn_like(x0)
                                     rec_noise = find_noise_for_image_sigma_adjustment(init_latent=rec_frame_latent, prompt=rec_prompt, image_conditioning=depth_cond, cfg_scale=scale, steps=ddim_steps,
                                                                                       frame_num=frame_num, main_config=config, video_config=video_config, content_config=content_config,
-                                                                                      model_config=model_config, clip_config=clip_config, sd_model=sd_model)
+                                                                                      model_config=model_config, clip_config=clip_config, sd_model=model_config.sd_model)
                                     combined_noise = ((1 - config.rec_randomness) * rec_noise + config.rec_randomness * rand_noise) / (
                                             (config.rec_randomness ** 2 + (1 - config.rec_randomness) ** 2) ** 0.5)
                                     noise = combined_noise - (x0 / sigmas[0])
@@ -1241,7 +1240,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                 rand_noise = torch.randn_like(x0)
                                 rec_noise = find_noise_for_image_sigma_adjustment(init_latent=rec_frame_latent, prompt=rec_prompt, image_conditioning=depth_cond, cfg_scale=scale, steps=ddim_steps,
                                                                                   frame_num=frame_num, main_config=config, video_config=video_config, content_config=content_config,
-                                                                                      model_config=model_config,clip_config=clip_config, sd_model=sd_model)
+                                                                                      model_config=model_config,clip_config=clip_config, sd_model=model_config.sd_model)
                                 combined_noise = ((1 - config.rec_randomness) * rec_noise + config.rec_randomness * rand_noise) / (
                                         (config.rec_randomness ** 2 + (1 - config.rec_randomness) ** 2) ** 0.5)
                                 x = combined_noise  # - (x0 / sigmas[0])
@@ -1255,15 +1254,15 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                             config.first_latent = samples_ddim
 
                         if config.offload_model:
-                            sd_model.model.cpu()
-                            sd_model.cond_stage_model.cpu()
+                            model_config.sd_model.model.cpu()
+                            model_config.sd_model.cond_stage_model.cpu()
                             if model_version == 'control_multi':
                                 for key in config.loaded_controlnets.keys():
                                     config.loaded_controlnets[key].cpu()
 
                         gc.collect()
                         torch.cuda.empty_cache()
-                        x_samples_ddim = sd_model.decode_first_stage(samples_ddim)
+                        x_samples_ddim = model_config.sd_model.decode_first_stage(samples_ddim)
                         printf('x_samples_ddim', x_samples_ddim.min(), x_samples_ddim.max(), x_samples_ddim.std(), x_samples_ddim.mean())
                         scale_raw_sample = False
                         if scale_raw_sample:

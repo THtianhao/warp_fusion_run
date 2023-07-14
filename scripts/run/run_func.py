@@ -46,7 +46,7 @@ def do_run(main_config: MainConfig,
            ref_config: ReferenceConfig,
            captioning_config: CaptioningConfig,
            clip_config: ClipConfig):
-    sd_model = model_config.sd_mode
+    sd_model = model_config.sd_model
     blend_json_schedules = main_config.blend_json_schedules
     args = main_config.args
     seed = args.seed
@@ -481,7 +481,6 @@ def do_run(main_config: MainConfig,
                                                    model_config=model_config,
                                                    content_config=content_config,
                                                    clip_config=clip_config,
-                                                   sd_model=sd_model,
                                                    cond_fn=None,
                                                    init_grad_img=init_grad_img,
                                                    consistency_mask=consistency_mask,

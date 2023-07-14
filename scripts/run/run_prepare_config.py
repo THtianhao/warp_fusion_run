@@ -44,7 +44,7 @@ def run_prepare_config(main_config: MainConfig,
                        video_config: VideoConfig,
                        lora_embedding_config: LoraEmbeddingConfig,
                        content_aware_config: ContentAwareConfig):
-    sd_model = model_config.sd_mode
+    sd_model = model_config.sd_model
     torch.cuda.empty_cache()
     gc.collect()
     sd_model.control_scales = ([1] * 13)

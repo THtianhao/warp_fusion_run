@@ -50,7 +50,7 @@ if __name__ == "__main__":
     # 禁用tail_vae
     tail_vae_config = TiledVaeConfig()
     tail_vae_config.use_tiled_vae = False
-    tiled_vae(tail_vae_config, model_config.sd_mode)
+    tiled_vae(tail_vae_config, model_config.sd_model)
     # 加载图片相似度clip模型
     clip_config = ClipConfig()
     clip_config.clip_guidance_scale = 0
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     lora_embedding_config.custom_embed_dir = '/data/tianhao/warp_fussion/models/embeddings'
     set_lora_embedding(lora_embedding_config)
     ref_config = ReferenceConfig()
-    reference_control(ref_config, model_config.sd_mode, main_config.reference_latent)
+    reference_control(ref_config, model_config.sd_model, main_config.reference_latent)
     prepare_run(main_config)
     run_prepare_config(main_config,model_config,video_config,lora_embedding_config,content_aware_config)
     do_run(main_config, video_config, content_aware_config, model_config, ref_config,captioning_config, clip_config)

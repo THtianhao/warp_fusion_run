@@ -186,4 +186,4 @@ def load_sd_and_k_fusion(config: ModelConfig, main_config: MainConfig):
     except Exception as e:
         print(e)
         # pass
-    config.sd_mode = sd_model
+    config.sd_model = sd_model
