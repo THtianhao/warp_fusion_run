@@ -6,8 +6,9 @@ from modules import prompt_parser
 from scripts.model_process.model_env import model_version
 
 class CFGDenoiser(nn.Module):
-    def __init__(self, model, img_zero_uncond, controlnet_multimodel_mode, loaded_controlnets):
+    def __init__(self, model, img_zero_uncond, controlnet_multimodel_mode,controlnet_multimodel, loaded_controlnets):
         super().__init__()
+        self.controlnet_multimodel = controlnet_multimodel
         self.loaded_controlnets = loaded_controlnets
         self.inner_model = model
         self.img_zero_uncond = img_zero_uncond
