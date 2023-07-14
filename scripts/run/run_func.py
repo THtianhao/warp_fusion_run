@@ -136,7 +136,7 @@ def do_run(main_config: MainConfig,
                     # img_filepath = '/content/prevFrame.png' if is_colab else 'prevFrame.png'
                     img_filepath = 'prevFrame.png'
 
-                next_step_pil = do_3d_step(img_filepath, frame_num, main_config, video_config, sd_model, forward_clip=args.forward_weights_clip)
+                next_step_pil = do_3d_step(img_filepath, frame_num, main_config, video_config, sd_model, forward_clip=main_config.forward_weights_clip)
                 if main_config.warp_mode == 'use_image':
                     next_step_pil.save('prevFrameScaled.png')
                 else:
@@ -679,7 +679,6 @@ def do_3d_step(img_filepath, frame_num, main_config: MainConfig, video_config: V
         mapped_frame_num = int(get_scheduled_arg(frame_num, main_config.flow_override_map))
         frame_override_path = f'{video_config.videoFramesFolder}/{mapped_frame_num:06}.jpg'
         flo_path = f"{video_config.flo_folder}/{frame_override_path.split('/')[-1]}.npy"
-
     if main_config.use_background_mask and not main_config.apply_mask_after_warp:
         # if turbo_mode & (frame_num % int(turbo_steps) != 0):
         #   print('disabling mask for turbo step, will be applied during turbo blend')
@@ -693,7 +692,7 @@ def do_3d_step(img_filepath, frame_num, main_config: MainConfig, video_config: V
     weights_path = None
     forward_clip = main_config.forward_weights_clip
     if main_config.check_consistency:
-        if main_config.args.reverse_cc_order:
+        if video_config.reverse_cc_order:
             weights_path = f"{video_config.flo_folder}/{frame1_path.split('/')[-1]}-21_cc.jpg"
         else:
             weights_path = f"{video_config.flo_folder}/{frame1_path.split('/')[-1]}_12-21_cc.jpg"

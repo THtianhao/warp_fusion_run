@@ -100,7 +100,7 @@ from torch.nn import functional as F
 from torch.cuda.amp import GradScaler
 
 def sd_cond_fn(x, t, denoised, init_image_sd, init_latent, init_scale,
-               init_latent_scale, target_embed, consistency_mask, main_config: MainConfig, sd_model,clip_config:ClipConfig, guidance_start_code=None,
+               init_latent_scale, target_embed, consistency_mask, main_config: MainConfig, clip_config: ClipConfig, guidance_start_code=None,
                deflicker_fn=None, deflicker_lat_fn=None, deflicker_src=None,
                **kwargs):
     if main_config.use_scale: scaler = GradScaler()
@@ -351,7 +351,7 @@ import hashlib
 
 def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditioning, cfg_scale, steps, frame_num,
                                           main_config: MainConfig, video_config: VideoConfig, content_config: ContentAwareConfig,
-                                          model_config: ModelConfig, clip_config:ClipConfig,
+                                          model_config: ModelConfig, clip_config: ClipConfig,
                                           sd_model):
     rec_noise_setting_list = {
         'init_image': init_image,
@@ -605,7 +605,7 @@ import contextlib
 
 none_context = contextlib.nullcontext()
 
-def masked_callback(args, callback_steps, masks, init_latent,  config: MainConfig):
+def masked_callback(args, callback_steps, masks, init_latent, config: MainConfig):
     # print('callback_step', callback_step)
     # print([o.shape for o in masks])
     init_latent = init_latent.clone()
@@ -675,7 +675,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
               'init_image', 'skip_timesteps', 'cfg_scale')
         print(seed, clip_config.clip_guidance_scale, init_scale, init_latent_scale, clip_config.clamp_grad,
               clip_config.clamp_max, init_image, skip_timesteps, cfg_scale)
-    global  inpainting_mask_weight, inverse_inpainting_mask, start_code_cb, guidance_start_code
+    global inpainting_mask_weight, inverse_inpainting_mask, start_code_cb, guidance_start_code
     batch_size = num_samples = 1
     scale = cfg_scale
 
@@ -850,6 +850,8 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                                   init_latent_scale=init_latent_scale,
                                                   target_embed=target_embed,
                                                   consistency_mask=consistency_mask_t,
+                                                  main_config=config,
+                                                  clip_config=clip_config,
                                                   start_code=guidance_start_code,
                                                   deflicker_fn=deflicker_fn, deflicker_lat_fn=deflicker_lat_fn, deflicker_src=deflicker_src
                                                   )
@@ -1240,7 +1242,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                 rand_noise = torch.randn_like(x0)
                                 rec_noise = find_noise_for_image_sigma_adjustment(init_latent=rec_frame_latent, prompt=rec_prompt, image_conditioning=depth_cond, cfg_scale=scale, steps=ddim_steps,
                                                                                   frame_num=frame_num, main_config=config, video_config=video_config, content_config=content_config,
-                                                                                      model_config=model_config,clip_config=clip_config, sd_model=model_config.sd_model)
+                                                                                  model_config=model_config, clip_config=clip_config, sd_model=model_config.sd_model)
                                 combined_noise = ((1 - config.rec_randomness) * rec_noise + config.rec_randomness * rand_noise) / (
                                         (config.rec_randomness ** 2 + (1 - config.rec_randomness) ** 2) ** 0.5)
                                 x = combined_noise  # - (x0 / sigmas[0])

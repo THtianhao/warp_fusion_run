@@ -33,7 +33,7 @@ if __name__ == "__main__":
     # video_config.video_init_path = "./res/dance.mp4"
     video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
     set_video_path(video_config)
-    # extra_video_frame(video_config)
+    extra_video_frame(video_config)
     video_config.extract_background_mask = False
     video_config.mask_source = 'init_video'
     video_config.mask_video_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance_mask.mp4"
