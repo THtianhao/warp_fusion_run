@@ -29,12 +29,15 @@ from scripts.run.run_prepare_config import run_prepare_config
 
 if __name__ == "__main__":
     main_config = MainConfig()
+    main_config.fixed_seed = True
+    main_config.text_prompts = {0: ['Masterpiece, beautiful white marble statue, sculpture']}
+
     video_config = VideoConfig()
     # video_config.video_init_path = "./res/dance.mp4"
     video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
     set_video_path(video_config)
     extra_video_frame(video_config)
-    video_config.extract_background_mask = True
+    video_config.extract_background_mask = False
     video_config.mask_source = 'init_video'
     video_config.mask_video_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance_mask.mp4"
     mask_video_frame(video_config)
@@ -74,5 +77,5 @@ if __name__ == "__main__":
     reference_control(ref_config, model_config.sd_model, main_config.reference_latent)
 
     prepare_run(main_config)
-    run_prepare_config(main_config,model_config,video_config,lora_embedding_config,content_aware_config)
+    run_prepare_config(main_config,model_config, video_config,lora_embedding_config,content_aware_config)
     do_run(main_config, video_config, content_aware_config, model_config, ref_config,captioning_config, clip_config)

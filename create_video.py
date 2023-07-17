@@ -1,5 +1,7 @@
 import gc
 import os
+from datetime import time
+from functools import partial
 from glob import glob
 
 import PIL
@@ -8,11 +10,15 @@ import torch
 from PIL import Image
 # @title ### **Create video**
 # @markdown Video file will save in the same folder as your images.
-from tqdm.notebook import trange
+from tqdm.notebook import trange, tqdm
 
 from scripts.model_process.model_config import ModelConfig
+from scripts.run.run_common_func import printf
+from scripts.run.run_func import apply_mask
 from scripts.settings.main_config import MainConfig
-from scripts.utils.env import root_dir
+from scripts.settings.setting import batchFolder
+from scripts.utils.env import root_dir, outDirPath
+from scripts.video_process.color_transfor_func import warp
 from scripts.video_process.video_config import VideoConfig
 
 skip_video_for_run_all = False  # @param {type: 'boolean'}
@@ -66,13 +72,13 @@ threads = 12  # @param {type:"number"}
 threads = max(min(threads, 64), 1)
 frames = []
 
-def generate_video(model_config:ModelConfig,video_config:VideoConfig,main_config:MainConfig):
+def generate_video(model_config: ModelConfig, video_config: VideoConfig, main_config: MainConfig):
     if upscale_ratio > 1:
-        try:
-            for key in loaded_controlnets.keys():
-                loaded_controlnets[key].cpu()
-        except:
-            pass
+        # try:
+        #     for key in loaded_controlnets.keys():
+        #         loaded_controlnets[key].cpu()
+        # except:
+        #     pass
         try:
             model_config.sd_model.model.cpu()
             model_config.sd_model.cond_stage_model.cpu()
@@ -181,7 +187,7 @@ def generate_video(model_config:ModelConfig,video_config:VideoConfig,main_config
 
         image_path = f"{outDirPath}/{folder}/{folder}({run})_%06d.png"
         # filepath = f"{outDirPath}/{folder}/{folder}({run}).{output_format}"
-
+        postfix = ''
         if (blend_mode == 'optical flow') & (True):
             image_path = f"{outDirPath}/{folder}/flow/{folder}({run})_%06d.png"
             postfix += '_flow'
@@ -202,7 +208,7 @@ def generate_video(model_config:ModelConfig,video_config:VideoConfig,main_config
 
             frame0 = Image.open(frames_in[0])
             if use_background_mask_video:
-                frame0 = apply_mask(frame0, 0, background_video, background_source_video, invert_mask_video)
+                frame0 = apply_mask(frame0, 0, background_video, background_source_video, main_config, video_config, model_config.sd_model, invert_mask_video)
             if upscale_ratio > 1:
                 frame0 = np.array(frame0)[..., ::-1]
                 output, _ = upsampler.enhance(frame0, outscale=upscale_ratio)
@@ -216,19 +222,19 @@ def generate_video(model_config:ModelConfig,video_config:VideoConfig,main_config
                 frame1 = Image.open(frame1_path)
                 frame2 = Image.open(frame2_path)
                 frame1_stem = f"{(int(frame1_path.split('/')[-1].split('_')[-1][:-4]) + 1):06}.jpg"
-                flo_path = f"{flo_folder}/{frame1_stem}.npy"
+                flo_path = f"{video_config.flo_folder}/{frame1_stem}.npy"
                 weights_path = None
                 if check_consistency:
-                    if reverse_cc_order:
-                        weights_path = f"{flo_folder}/{frame1_stem}-21_cc.jpg"
+                    if video_config.reverse_cc_order:
+                        weights_path = f"{video_config.flo_folder}/{frame1_stem}-21_cc.jpg"
                     else:
-                        weights_path = f"{flo_folder}/{frame1_stem}_12-21_cc.jpg"
+                        weights_path = f"{video_config.flo_folder}/{frame1_stem}_12-21_cc.jpg"
                 tic = time.time()
                 printf('process_flow_frame warp')
                 frame = warp(frame1, frame2, flo_path, blend=blend, weights_path=weights_path,
-                             pad_pct=padding_ratio, padding_mode=padding_mode, inpaint_blend=0, video_mode=True)
+                             pad_pct=main_config.padding_ratio, padding_mode=main_config.padding_mode, inpaint_blend=0, video_mode=True)
                 if use_background_mask_video:
-                    frame = apply_mask(frame, i, background_video, background_source_video, invert_mask_video)
+                    frame = apply_mask(frame, i, background_video, background_source_video, main_config, video_config, model_config.sd_model, invert_mask_video)
                 if upscale_ratio > 1:
                     frame = np.array(frame)[..., ::-1]
                     output, _ = upsampler.enhance(frame.clip(0, 255), outscale=upscale_ratio)
@@ -256,7 +262,7 @@ def generate_video(model_config:ModelConfig,video_config:VideoConfig,main_config
 
             frame0 = Image.open(frames_in[0])
             if use_background_mask_video:
-                frame0 = apply_mask(frame0, 0, background_video, background_source_video, invert_mask_video)
+                frame0 = apply_mask(frame0, 0, background_video, background_source_video, main_config, video_config, model_config.sd_model, invert_mask_video)
             if upscale_ratio > 1:
                 frame0 = np.array(frame0)[..., ::-1]
                 output, _ = upsampler.enhance(frame0.clip(0, 255), outscale=upscale_ratio)
@@ -271,7 +277,7 @@ def generate_video(model_config:ModelConfig,video_config:VideoConfig,main_config
                 frame2 = Image.open(frame2_path)
                 frame = Image.fromarray((np.array(frame1) * (1 - blend) + np.array(frame2) * (blend)).round().astype('uint8'))
                 if use_background_mask_video:
-                    frame = apply_mask(frame, i, background_video, background_source_video, invert_mask_video)
+                    frame = apply_mask(frame, i, background_video, background_source_video, main_config, video_config, model_config.sd_model, invert_mask_video)
                 if upscale_ratio > 1:
                     frame = np.array(frame)[..., ::-1]
                     output, _ = upsampler.enhance(frame.clip(0, 255), outscale=upscale_ratio)
@@ -361,9 +367,9 @@ def generate_video(model_config:ModelConfig,video_config:VideoConfig,main_config
         keep_audio = True  # @param {'type':'boolean'}
         if keep_audio:
             f_audio = filepath[:-4] + '_audio' + filepath[-4:]
-            if os.path.exists(filepath) and os.path.exists(video_init_path):
+            if os.path.exists(filepath) and os.path.exists(video_config.video_init_path):
 
-                cmd_a = ['ffmpeg', '-y', '-i', filepath, '-i', video_init_path, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-shortest', f_audio]
+                cmd_a = ['ffmpeg', '-y', '-i', filepath, '-i', video_config.video_init_path, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-shortest', f_audio]
                 process = subprocess.Popen(cmd_a, cwd=f'{root_dir}', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 stdout, stderr = process.communicate()
                 if process.returncode != 0:
@@ -379,6 +385,8 @@ def generate_video(model_config:ModelConfig,video_config:VideoConfig,main_config
         #     data_url = "data:video/mp4;base64," + b64encode(mp4).decode()
         #     display.HTML(f'<video width=400 controls><source src="{data_url}" type="video/mp4"></video>')
 
-
-if __name__ ==  "__main__":
-    generate_video()
+if __name__ == "__main__":
+    main_config = ModelConfig()
+    model_config = ModelConfig()
+    video_config = VideoConfig()
+    generate_video(model_config, video_config, main_config)
