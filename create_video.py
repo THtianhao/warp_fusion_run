@@ -1,6 +1,13 @@
+import time
+from types import SimpleNamespace
+
+import pydevd_pycharm
+
+from scripts.video_process.video_flow import set_video_path
+
+pydevd_pycharm.settrace('49.7.62.197', port=10090, stdoutToServer=True, stderrToServer=True)
 import gc
 import os
-from datetime import time
 from functools import partial
 from glob import glob
 
@@ -16,7 +23,7 @@ from scripts.model_process.model_config import ModelConfig
 from scripts.run.run_common_func import printf
 from scripts.run.run_func import apply_mask
 from scripts.settings.main_config import MainConfig
-from scripts.settings.setting import batchFolder
+from scripts.settings.setting import batchFolder, batch_name
 from scripts.utils.env import root_dir, outDirPath
 from scripts.video_process.color_transfor_func import warp
 from scripts.video_process.video_config import VideoConfig
@@ -166,10 +173,10 @@ def generate_video(model_config: ModelConfig, video_config: VideoConfig, main_co
         from multiprocessing.pool import ThreadPool as Pool
 
         pool = Pool(threads)
+        # 第几批图片？
+        latest_run = 0
 
-        latest_run = main_config.args.batchNum
-
-        folder = main_config.args.batch_name  # @param
+        folder = batch_name  # @param
         run = latest_run  # @param
         final_frame = 'final_frame'
 
@@ -231,7 +238,7 @@ def generate_video(model_config: ModelConfig, video_config: VideoConfig, main_co
                         weights_path = f"{video_config.flo_folder}/{frame1_stem}_12-21_cc.jpg"
                 tic = time.time()
                 printf('process_flow_frame warp')
-                frame = warp(frame1, frame2, flo_path, blend=blend, weights_path=weights_path,
+                frame = warp(main_config, video_config, frame1, frame2, flo_path, blend=blend, weights_path=weights_path,
                              pad_pct=main_config.padding_ratio, padding_mode=main_config.padding_mode, inpaint_blend=0, video_mode=True)
                 if use_background_mask_video:
                     frame = apply_mask(frame, i, background_video, background_source_video, main_config, video_config, model_config.sd_model, invert_mask_video)
@@ -241,6 +248,7 @@ def generate_video(model_config: ModelConfig, video_config: VideoConfig, main_co
                     frame = PIL.Image.fromarray((output)[..., ::-1].clip(0, 255).astype('uint8'))
                 frame.save(batchFolder + f"/flow/{folder}({run})_{i:06}.png")
 
+            # process_flow_frame(141)
             with Pool(threads) as p:
                 fn = partial(try_process_frame, func=process_flow_frame)
                 total_frames = range(init_frame, min(len(frames_in), last_frame))
@@ -386,7 +394,15 @@ def generate_video(model_config: ModelConfig, video_config: VideoConfig, main_co
         #     display.HTML(f'<video width=400 controls><source src="{data_url}" type="video/mp4"></video>')
 
 if __name__ == "__main__":
-    main_config = ModelConfig()
+    main_config = MainConfig()
     model_config = ModelConfig()
     video_config = VideoConfig()
+    video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
+    set_video_path(video_config)
+    main_config.args = {
+        'batchNum': 0,
+        'batch_name': batch_name,
+
+    }
+    main_config.args = SimpleNamespace(**main_config.args)
     generate_video(model_config, video_config, main_config)
