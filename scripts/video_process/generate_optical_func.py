@@ -30,7 +30,8 @@ def generate_optical_flow(bean: VideoConfig):
             frame1 = ds.frames[i]
             frame1 = frame1.replace('\\', '/')
             out_flow21_fn = f"{flo_fwd_folder}/{frame1.split('/')[-1]}"
-            if bean.flow_lq:   frame_1, frame_2 = frame_1, frame_2
+            if bean.flow_lq:
+                frame_1, frame_2 = frame_1, frame_2
             if bean.use_jit_raft:
                 _, flow21 = raft_model(frame_2, frame_1)
             else:

@@ -62,7 +62,7 @@ class VideoConfig:
     # @markdown Save human-readable flow images along with motion vectors. Check /{your output dir}/videoFrames/out_flo_fwd folder.
     flow_save_img_preview = False  # @param {type:'boolean'}
     in_path = videoFramesFolder if not flow_video_init_path else flowVideoFramesFolder
-    flo_fwd_folder = flo_folder = in_path + f'_out_flo_fwd/{side_x}_{side_y}/'
+    flo_fwd_folder = flo_folder = in_path + f'_out_flo_fwd/{side_x}_{side_y}'
     # #@markdown reverse_cc_order - on - default value (like in older notebooks). off - reverses consistency computation
     reverse_cc_order = True  #
     # #@param {type:'boolean'}

@@ -40,7 +40,7 @@ def set_video_path(config: VideoConfig):
         os.makedirs(config.controlnetDebugFolder, exist_ok=True)
         os.makedirs(config.recNoiseCacheFolder, exist_ok=True)
         config.in_path = config.videoFramesFolder if not config.flow_video_init_path else config.flowVideoFramesFolder
-        config.flo_folder = config.flo_fwd_folder = config.in_path + f'_out_flo_fwd/{side_x}_{side_y}/'
+        config.flo_folder = config.flo_fwd_folder = config.in_path + f'_out_flo_fwd/{side_x}_{side_y}'
         config.temp_flo = config.in_path + '_temp_flo'
         config.flo_bck_folder = config.in_path + '_out_flo_bck'
 
