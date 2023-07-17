@@ -174,9 +174,9 @@ def generate_video(model_config: ModelConfig, video_config: VideoConfig, main_co
 
         pool = Pool(threads)
         # 第几批图片？
-        latest_run = 0
+        latest_run = main_config.args.batchNum
 
-        folder = batch_name  # @param
+        folder = main_config.args.batch_name  # @param
         run = latest_run  # @param
         final_frame = 'final_frame'
 
