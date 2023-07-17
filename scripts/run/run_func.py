@@ -36,6 +36,7 @@ from scripts.settings.main_config import MainConfig
 from scripts.settings.setting import batch_name, batchFolder, side_x, side_y
 from scripts.video_process.color_transfor_func import warp, warp_lat, k_means_warp, load_cc, fit, get_flow
 from scripts.video_process.video_config import VideoConfig
+from scripts.model_process.model_env import model_version
 
 def do_run(main_config: MainConfig,
            video_config: VideoConfig,
@@ -426,7 +427,6 @@ def do_run(main_config: MainConfig,
                     rec_frame = f'{video_config.videoFramesFolder}/{frame_num + 1:06}.jpg'
 
                 # setup masks for inpainting model
-                from scripts.model_process.model_env import model_version
                 if model_version == 'v1_inpainting':
                     if main_config.inpainting_mask_source == 'consistency_mask':
                         cond_image = consistency_mask
