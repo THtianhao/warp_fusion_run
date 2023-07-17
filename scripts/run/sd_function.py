@@ -673,8 +673,8 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
     if VERBOSE:
         print('seed', 'clip_guidance_scale', 'init_scale', 'init_latent_scale', 'clamp_grad', 'clamp_max',
               'init_image', 'skip_timesteps', 'cfg_scale')
-        print(seed, clip_config.clip_guidance_scale, init_scale, init_latent_scale, clip_config.clamp_grad,
-              clip_config.clamp_max, init_image, skip_timesteps, cfg_scale)
+        print(seed, clip_config.clip_guidance_scale, init_scale, init_latent_scale, config.clamp_grad,
+              config.clamp_max, init_image, skip_timesteps, cfg_scale)
     global inpainting_mask_weight, inverse_inpainting_mask, start_code_cb, guidance_start_code
     batch_size = num_samples = 1
     scale = cfg_scale
