@@ -1,25 +1,24 @@
 import copy
 import gc
 import json
-import math
 import os
 import random
 import re
 import shutil
 import traceback
-from datetime import datetime
 
 import PIL
 import cv2
+import math
 import numpy as np
 import piexif
 import torch
+import torchvision.transforms.functional as TF
 from IPython import display
 from PIL import Image, ImageOps
 from ipywidgets import Output
 from matplotlib import pyplot as plt
 from tqdm import tqdm
-import torchvision.transforms.functional as TF
 
 from modules.devices import device
 from scripts.captioning_process.captioning_config import CaptioningConfig
@@ -27,6 +26,7 @@ from scripts.captioning_process.generate_key_frame import get_caption
 from scripts.clip_process.clip_config import ClipConfig
 from scripts.content_ware_process.content_aware_config import ContentAwareConfig
 from scripts.lora_embedding.lora_embedding_fun import get_loras_weights_for_frame, load_loras
+from scripts.model_process.mode_func import spherical_dist_loss
 from scripts.model_process.model_config import ModelConfig
 from scripts.refrerence_control_processor.reference_config import ReferenceConfig
 from scripts.run.run_common_func import get_scheduled_arg, get_sched_from_json, printf
@@ -34,10 +34,8 @@ from scripts.run.run_env import stop_on_next_loop, VERBOSE, diffusion_model
 from scripts.run.sd_function import match_color_var, run_sd
 from scripts.settings.main_config import MainConfig
 from scripts.settings.setting import batch_name, batchFolder, side_x, side_y
-from scripts.utils.env import root_dir
 from scripts.video_process.color_transfor_func import warp, warp_lat, k_means_warp, load_cc, fit, get_flow
 from scripts.video_process.video_config import VideoConfig
-from scripts.model_process.mode_func import get_image_embed, spherical_dist_loss
 
 def do_run(main_config: MainConfig,
            video_config: VideoConfig,

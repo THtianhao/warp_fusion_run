@@ -29,6 +29,7 @@ from scripts.run.run_prepare_config import run_prepare_config
 
 if __name__ == "__main__":
     main_config = MainConfig()
+    main_config.check_consistency = False # 不检查光流一致性
     main_config.fixed_seed = True
     main_config.text_prompts = {0: ['Masterpiece, beautiful white marble statue, sculpture']}
 
@@ -48,8 +49,8 @@ if __name__ == "__main__":
     video_config.use_jit_raft = True
     video_config.force_flow_generation = True
     video_config.flow_lq = True
-
     generate_optical_flow(video_config)
+
     model_config = ModelConfig()
     model_config.model_path = '/data/tianhao/stable-diffusion-webui/models/Stable-diffusion/deliberate_v2.safetensors'
     model_config.controlnet_models_dir = '/data/tianhao/warp_fussion/ControlNet/models'
