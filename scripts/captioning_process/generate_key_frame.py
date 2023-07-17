@@ -76,17 +76,17 @@ def generate_key_frame(config: CaptioningConfig, videoFramesFolder, diff):
             blip_model = blip_model.to(device)
         finally:
             print('Using keyframes: ', caption_keyframes[:20], ' (first 20 keyframes displyed')
-            if offset_mode == 'None':
+            if config.offset_mode == 'None':
                 keyframes = caption_keyframes
-            if offset_mode == 'Fixed':
+            if config.offset_mode == 'Fixed':
                 keyframes = caption_keyframes
                 for i in range(len(caption_keyframes)):
                     if keyframes[i] >= max(caption_keyframes):
                         keyframes[i] = caption_keyframes[i]
                     else:
-                        keyframes[i] = min(caption_keyframes[i] + fixed_offset, caption_keyframes[i + 1])
+                        keyframes[i] = min(caption_keyframes[i] + config.fixed_offset, caption_keyframes[i + 1])
                 print('Remapped keyframes to ', keyframes[:20])
-            if offset_mode == 'Between Keyframes':
+            if config.offset_mode == 'Between Keyframes':
                 keyframes = caption_keyframes
                 for i in range(len(caption_keyframes)):
                     if keyframes[i] >= max(caption_keyframes):

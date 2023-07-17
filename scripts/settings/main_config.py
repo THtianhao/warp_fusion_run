@@ -50,9 +50,7 @@ class MainConfig:
     eta = 0.55
     clamp_grad = True  # @param{type: 'boolean'}
     clamp_max = 2  # @param{type: 'number'}
-    text_prompts = {0: ['a beautiful highly detailed cyberpunk mechanical \
-    augmented most beautiful (woman) ever, cyberpunk 2077, neon, dystopian, \
-    hightech, trending on artstation']}
+    text_prompts = {0: ['Masterpiece, beautiful white marble statue,sculpture,white hair']}
 
     negative_prompts = {
         0: ["text, naked, nude, logo, cropped, two heads, four arms, lazy eye, blurry, unfocused"]

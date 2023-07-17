@@ -8,6 +8,7 @@ from scripts.settings.main_config import MainConfig
 from scripts.settings.setting import warp_interp
 from scripts.utils.env import root_dir, root_path
 from scripts.video_process.Input_padder import InputPadder
+from scripts.video_process.video_config import VideoConfig
 
 force_download = False  # \@param {type:'boolean'}
 # import wget
@@ -386,7 +387,7 @@ def writeFlow(filename, uv, v=None):
     tmp.astype(np.float32).tofile(f)
     f.close()
 
-def load_cc(config: MainConfig, path, controlnetDebugFolder, args, blur=2, dilate=0):
+def load_cc(config: MainConfig, path, controlnetDebugFolder,  blur=2, dilate=0):
     multilayer_weights = np.array(Image.open(path)) / 255
     weights = np.ones_like(multilayer_weights[..., 0])
     weights *= multilayer_weights[..., 0].clip(1 - config.missed_consistency_weight, 1)
@@ -398,7 +399,7 @@ def load_cc(config: MainConfig, path, controlnetDebugFolder, args, blur=2, dilat
     if blur > 0: weights = scipy.ndimage.gaussian_filter(weights, [blur, blur])
     weights = np.repeat(weights[..., None], 3, axis=2)
     # print('------------cc debug------', f'{controlnetDebugFolder}/{args.batch_name}({args.batchNum})_cc_mask.jpg')
-    PIL.Image.fromarray((weights * 255).astype('uint8')).save(f'{controlnetDebugFolder}/{args.batch_name}({args.batchNum})_cc_mask.jpg', quality=95)
+    PIL.Image.fromarray((weights * 255).astype('uint8')).save(f'{controlnetDebugFolder}/{config.args.batch_name}({config.args.batchNum})_cc_mask.jpg', quality=95)
     # assert False
     if DEBUG: print('weight min max mean std', weights.shape, weights.min(), weights.max(), weights.mean(), weights.std())
     return weights
@@ -441,7 +442,7 @@ def fit(img, maxsize=512):
         img = img.resize(size, warp_interp)
     return img
 
-def warp(config: MainConfig, frame1, frame2, flo_path, blend=0.5, weights_path=None, forward_clip=0.,
+def warp(config: MainConfig,video_config:VideoConfig, frame1, frame2, flo_path, blend=0.5, weights_path=None, forward_clip=0.,
          pad_pct=0.1, padding_mode='reflect', inpaint_blend=0., video_mode=False, warp_mul=1.):
     if isinstance(flo_path, str):
         flow21 = np.load(flo_path)
@@ -463,7 +464,7 @@ def warp(config: MainConfig, frame1, frame2, flo_path, blend=0.5, weights_path=N
     frame2pil = np.array(frame2.convert('RGB').resize((flow21.shape[1] - pad * 2, flow21.shape[0] - pad * 2), warp_interp))
     # if not video_mode: frame2pil = match_color(frame1_warped21, frame2pil, opacity=match_color_strength)
     if weights_path:
-        forward_weights = load_cc(config, weights_path, blur=config.consistency_blur, dilate=config.consistency_dilate)
+        forward_weights = load_cc(config, weights_path,video_config.controlnetDebugFolder, blur=config.consistency_blur, dilate=config.consistency_dilate)
         # print('forward_weights')
         # print(forward_weights.shape)
         if not video_mode and config.match_color_strength > 0.: frame2pil = match_color(frame1_warped21, frame2pil, opacity=config.match_color_strength)
@@ -493,7 +494,7 @@ def warp(config: MainConfig, frame1, frame2, flo_path, blend=0.5, weights_path=N
         if enable_adjust_brightness: blended_w = adjust_brightness(blended_w)
     return blended_w
 
-def warp_lat(config: MainConfig, sd_model, frame1, frame2, flo_path, blend=0.5, weights_path=None, forward_clip=0.,
+def warp_lat(config: MainConfig,video_config:VideoConfig, sd_model, frame1, frame2, flo_path, blend=0.5, weights_path=None, forward_clip=0.,
              pad_pct=0.1, padding_mode='reflect', inpaint_blend=0., video_mode=False, warp_mul=1.):
     warp_downscaled = True
     flow21 = np.load(flo_path)
@@ -527,7 +528,7 @@ def warp_lat(config: MainConfig, sd_model, frame1, frame2, flo_path, blend=0.5, 
     frame2pil = frame2pil.cpu().numpy()[0].transpose(1, 2, 0)
     # if not video_mode: frame2pil = match_color(frame1_warped21, frame2pil, opacity=match_color_strength)
     if weights_path:
-        forward_weights = load_cc(config, weights_path, blur=config.consistency_blur, dilate=config.consistency_dilate)
+        forward_weights = load_cc(config, weights_path,video_config.controlnetDebugFolder, blur=config.consistency_blur, dilate=config.consistency_dilate)
         print(forward_weights[..., :1].shape, 'forward_weights.shape')
         forward_weights = np.repeat(forward_weights[..., :1], 4, axis=-1)
         # print('forward_weights')

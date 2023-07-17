@@ -285,7 +285,7 @@ def do_run(main_config: MainConfig,
                     weights_path = f"{video_config.flo_folder}/{frame1_path.split('/')[-1]}-21_cc.jpg"
                 else:
                     weights_path = f"{video_config.flo_folder}/{frame1_path.split('/')[-1]}_12-21_cc.jpg"
-                consistency_mask = load_cc(main_config, weights_path, blur=main_config.consistency_blur, dilate=main_config.consistency_dilate)
+                consistency_mask = load_cc(main_config, weights_path, video_config.controlnetDebugFolder, blur=main_config.consistency_blur, dilate=main_config.consistency_dilate)
 
             if diffusion_model == 'stable_diffusion':
                 if VERBOSE: print(args.side_x, args.side_y, init_image)
@@ -532,7 +532,7 @@ def do_run(main_config: MainConfig,
                 if VERBOSE: print('imitating inpaint')
                 frame1_path = f'{video_config.videoFramesFolder}/{frame_num:06}.jpg'
                 weights_path = f"{video_config.flo_folder}/{frame1_path.split('/')[-1]}-21_cc.jpg"
-                consistency_mask = load_cc(main_config, weights_path, blur=main_config.consistency_blur, dilate=main_config.consistency_dilate)
+                consistency_mask = load_cc(main_config, weights_path, video_config.controlnetDebugFolder, blur=main_config.consistency_blur, dilate=main_config.consistency_dilate)
 
                 consistency_mask = cv2.GaussianBlur(consistency_mask, (main_config.diffuse_inpaint_mask_blur, main_config.diffuse_inpaint_mask_blur), cv2.BORDER_DEFAULT)
                 if main_config.diffuse_inpaint_mask_thresh < 1:
@@ -708,7 +708,9 @@ def do_3d_step(img_filepath, frame_num, main_config: MainConfig, video_config: V
 
         if not main_config.warp_forward:
             printf('warping')
-            warped = warp(main_config, prev,
+            warped = warp(main_config,
+                          video_config,
+                          prev,
                           frame2,
                           flo_path,
                           blend=main_config.flow_blend,
@@ -747,7 +749,7 @@ def do_3d_step(img_filepath, frame_num, main_config: MainConfig, video_config: V
                 warped = Image.fromarray(match_color_var(first_frame, warped, opacity=main_config.color_match_frame_str, f=main_config.colormatch_method_fn, regrain=main_config.colormatch_regrain))
     if main_config.warp_mode == 'use_latent':
         prev = torch.load(img_filepath[:-4] + '_lat.pt')
-        warped = warp_lat(main_config, sd_model, prev,
+        warped = warp_lat(main_config, video_config, sd_model, prev,
                           frame2,
                           flo_path,
                           blend=main_config.flow_blend,

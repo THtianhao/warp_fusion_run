@@ -34,14 +34,18 @@ if __name__ == "__main__":
     video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
     set_video_path(video_config)
     extra_video_frame(video_config)
-    video_config.extract_background_mask = False
+    video_config.extract_background_mask = True
     video_config.mask_source = 'init_video'
     video_config.mask_video_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance_mask.mp4"
     mask_video_frame(video_config)
 
     # download_reference_repository(video_config.animation_mode)
     # 使用光流脚本生成光流图，生成一致性图
-    video_config.use_jit_raft = False
+    video_config.flow_warp = False # 使用光流
+    video_config.use_jit_raft = True
+    video_config.force_flow_generation = True
+    video_config.flow_lq = True
+
     generate_optical_flow(video_config)
     model_config = ModelConfig()
     model_config.model_path = '/data/tianhao/stable-diffusion-webui/models/Stable-diffusion/deliberate_v2.safetensors'
@@ -55,6 +59,7 @@ if __name__ == "__main__":
     clip_config = ClipConfig()
     clip_config.clip_guidance_scale = 0
     get_clip_model_size(clip_config)
+
     content_aware_config = ContentAwareConfig()
     content_aware(content_aware_config, video_config.videoFramesFolder)
     captioning_config = CaptioningConfig()
@@ -64,8 +69,10 @@ if __name__ == "__main__":
     lora_embedding_config.lora_dir = '/data/tianhao/warp_fussion/models/loras'
     lora_embedding_config.custom_embed_dir = '/data/tianhao/warp_fussion/models/embeddings'
     set_lora_embedding(lora_embedding_config)
+
     ref_config = ReferenceConfig()
     reference_control(ref_config, model_config.sd_model, main_config.reference_latent)
+
     prepare_run(main_config)
     run_prepare_config(main_config,model_config,video_config,lora_embedding_config,content_aware_config)
     do_run(main_config, video_config, content_aware_config, model_config, ref_config,captioning_config, clip_config)
