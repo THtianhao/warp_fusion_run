@@ -15,7 +15,7 @@ from scripts.content_ware_process.content_aware_config import ContentAwareConfig
 from scripts.content_ware_process.content_aware_scheduing import rmse
 from scripts.model_process.mode_func import get_image_embed, spherical_dist_loss, load_img_sd, make_static_thresh_model_fn, make_cond_model_fn, make_batch_sd
 from scripts.model_process.model_config import ModelConfig
-from scripts.model_process.model_env import device, model_version, dynamic_thresh, quantize, no_half_vae
+from scripts.model_process.model_env import device, model_version, quantize, no_half_vae
 from scripts.refrerence_control_processor.reference_config import ReferenceConfig
 from scripts.run.run_common_func import printf
 from scripts.run.run_env import VERBOSE, diffusion_model
@@ -892,7 +892,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                         else:
                             model_fn = model_config.model_wrap_cfg
 
-                        model_fn = make_static_thresh_model_fn(model_fn, dynamic_thresh)
+                        model_fn = make_static_thresh_model_fn(model_fn, config.dynamic_thresh)
                         depth_img = None
                         depth_cond = None
                         if model_version == 'v2_depth':
