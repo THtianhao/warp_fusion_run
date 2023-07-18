@@ -19,5 +19,7 @@ outDirPath = os.path.join(root_path, 'images_out')
 createPath(outDirPath)
 model_path = f'{root_path}/models'
 createPath(model_path)
+toto_dir = f'{root_dir}/toto_out'
+createPath(toto_dir)
 
 createPath('./embeddings')
