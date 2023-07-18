@@ -60,7 +60,7 @@ except:
 mask_result = False
 early_stop = 0
 inpainting_stop = 0
-
+warp_interp = Image.BILINEAR
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print('Using device:', DEVICE)
