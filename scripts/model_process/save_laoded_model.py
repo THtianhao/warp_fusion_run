@@ -3,6 +3,8 @@
 #@markdown Saves an already loaded model as an object file, that weights less, loads faster, and requires less CPU RAM.\
 #@markdown After saving model as pickle, you can then load it as your usual stable diffusion model in thecell above.\
 #@markdown The model will be saved under the same name with .pkl extenstion.
+import os
+
 save_model_pickle = False #@param {'type':'boolean'}
 save_folder = "/content/drive/MyDrive/models" #@param {'type':'string'}
 if save_folder != '' and save_model_pickle:

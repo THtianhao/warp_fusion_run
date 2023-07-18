@@ -29,36 +29,42 @@ from scripts.run.run_prepare_config import run_prepare_config
 
 if __name__ == "__main__":
     main_config = MainConfig()
-    main_config.check_consistency = False # 不检查光流一致性
+    main_config.check_consistency = False  # 不检查光流一致性
     main_config.fixed_seed = True
-    main_config.warp_forward = False #进行光流融合
+    main_config.warp_forward = False  # 进行光流融合
 
     # 使用红色背景
-    main_config.use_background_mask = True
+    main_config.use_background_mask = False
     main_config.background = 'color'
     main_config.background_source = 'red'
-    main_config.text_prompts = {0: ['Masterpiece, beautiful white marble statue, sculpture']}
+    main_config.text_prompts = {0: ['Masterpiece, beautiful white marble statue']}
+
+    main_config.latent_scale_schedule = [
+        100]  # controls coherency with previous frame in latent space. 0 is a good starting value. 1+ render slower, but may improve image coherency. 100 is a good value if you decide to turn it on.
+    main_config.init_scale_schedule = [1000]  # controls coherency with previous frame in pixel space. 0 - off, 1000 - a good starting value if you decide to turn it on.
 
     video_config = VideoConfig()
     # video_config.video_init_path = "./res/dance.mp4"
-    video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
+    video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance_mask.mp4"
     set_video_path(video_config)
     extra_video_frame(video_config)
-    video_config.extract_background_mask = False
+
     video_config.mask_source = 'init_video'
-    video_config.mask_video_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance_mask.mp4"
+    video_config.extract_background_mask = False
+    # video_config.mask_video_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance_mask.mp4"
     mask_video_frame(video_config)
 
     download_reference_repository(video_config.animation_mode)
     # 使用光流脚本生成光流图，生成一致性图
-    video_config.flow_warp = False # 使用光流
-    video_config.use_jit_raft = False #  使用torch jit的版本，不适用torch2.0
+    video_config.flow_warp = False  # 使用光流
+    video_config.use_jit_raft = False  # 使用torch jit的版本，不适用torch2.0
     video_config.force_flow_generation = True
-    video_config.flow_save_img_preview =True # 是否生成用户可读的光流图
-    video_config.flow_lq = True # 使用半精度
+    video_config.flow_save_img_preview = True  # 是否生成用户可读的光流图
+    video_config.flow_lq = True  # 使用半精度
     generate_optical_flow(video_config)
 
     model_config = ModelConfig()
+    model_config.force_download = False
     model_config.model_path = '/data/tianhao/stable-diffusion-webui/models/Stable-diffusion/deliberate_v2.safetensors'
     model_config.controlnet_models_dir = '/data/tianhao/warp_fussion/ControlNet/models'
     load_sd_and_k_fusion(model_config, main_config)
@@ -81,11 +87,11 @@ if __name__ == "__main__":
     lora_embedding_config.custom_embed_dir = '/data/tianhao/warp_fussion/models/embeddings'
     set_lora_embedding(lora_embedding_config)
 
-    #controlnet 1.1 ReferenceControl 的实现,图生图
+    # controlnet 1.1 ReferenceControl 的实现,图生图
     ref_config = ReferenceConfig()
     ref_config.use_reference = True
     reference_control(ref_config, model_config.sd_model, main_config.reference_latent)
 
     prepare_run(main_config)
-    run_prepare_config(main_config,model_config, video_config,lora_embedding_config,content_aware_config)
-    do_run(main_config, video_config, content_aware_config, model_config, ref_config,captioning_config, clip_config)
+    run_prepare_config(main_config, model_config, video_config, lora_embedding_config, content_aware_config)
+    do_run(main_config, video_config, content_aware_config, model_config, ref_config, captioning_config, clip_config)
