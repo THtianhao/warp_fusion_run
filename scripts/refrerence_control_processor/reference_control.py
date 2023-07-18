@@ -34,7 +34,6 @@ def varname(p):
 def reference_control(config: ReferenceConfig, sd_model, reference_latent):
     outer = sd_model.model.diffusion_model
 
-
     # Attention Injection by Lvmin Zhang
     # https://github.com/lllyasviel
     # https://github.com/Mikubill/sd-webui-controlnet
@@ -111,6 +110,8 @@ def reference_control(config: ReferenceConfig, sd_model, reference_latent):
         x = self.attn2(self.norm2(x), context=context) + x
         x = self.ff(self.norm3(x)) + x
         return x
+
+    config.reference_active = config.reference_weight > 0 and config.use_reference and config.reference_source != 'None'
 
     if config.reference_active:
         # outer = sd_model.model.diffusion_model

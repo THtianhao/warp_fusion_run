@@ -6,4 +6,4 @@ class ReferenceConfig:
     reference_weight = 0.5  # @param
     reference_source = 'init'  # @param ['stylized', 'init', 'prev_frame','color_video']
     reference_mode = 'Balanced'  # @param ['Balanced', 'Controlnet', 'Prompt']
-    reference_active = reference_weight > 0 and use_reference and reference_source != 'None'
+    reference_active = False
