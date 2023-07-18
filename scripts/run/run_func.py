@@ -224,10 +224,12 @@ def do_run(main_config: MainConfig,
                 if main_config.use_background_mask:
                     if main_config.warp_mode == 'use_latent':
                         # pass
-                        latent = apply_mask(latent.cpu(), frame_num, main_config.background, main_config.background_source, main_config.invert_mask, main_config.warp_mode)  # .save(init_image)
+                        latent = apply_mask(latent.cpu(), frame_num, main_config.background, main_config.background_source, main_config, video_config, sd_model, main_config.invert_mask,
+                                            main_config.warp_mode)  # .save(init_image)
 
                     if main_config.warp_mode == 'use_image':
-                        apply_mask(Image.open(init_image), frame_num, main_config.background, main_config.background_source, main_config.invert_mask).save(init_image)
+                        apply_mask(Image.open(init_image), frame_num, main_config.background, main_config.background_source, main_config, video_config, sd_model, main_config.invert_mask).save(
+                            init_image)
                 # init_scale = args.frames_scale
                 init_scale = get_scheduled_arg(frame_num, main_config.init_scale_schedule)
                 # init_latent_scale = args.frames_latent_scale
