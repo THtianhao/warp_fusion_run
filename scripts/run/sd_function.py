@@ -440,7 +440,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
         'sampler': main_config.sampler.__name__,
         'mask_clip': (main_config.mask_clip[0], main_config.mask_clip[1]),
         'inpainting_mask_weight': main_config.inpainting_mask_weight,
-        'inverse_inpainting_mask': inverse_inpainting_mask,
+        'inverse_inpainting_mask': main_config.inverse_inpainting_mask,
         'mask_source': main_config.mask_source,
         'model_path': model_config.model_path,
         'diff_override': content_config.diff_override,
@@ -675,7 +675,6 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
               'init_image', 'skip_timesteps', 'cfg_scale')
         print(seed, clip_config.clip_guidance_scale, init_scale, init_latent_scale, config.clamp_grad,
               config.clamp_max, init_image, skip_timesteps, cfg_scale)
-    global inpainting_mask_weight, inverse_inpainting_mask, start_code_cb, guidance_start_code
     batch_size = num_samples = 1
     scale = cfg_scale
 
@@ -858,7 +857,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                         callback_partial = None
                         if config.cc_masked_diffusion and consistency_mask is not None or config.alpha_masked_diffusion and alpha_mask is not None:
                             if config.cb_fixed_code:
-                                if start_code_cb is None:
+                                if config.start_code_cb is None:
                                     if VERBOSE: print('init start code')
                                     start_code_cb = torch.randn_like(x0)
                             else:
@@ -1148,7 +1147,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                         if model_version == 'v1_inpainting':
                             print('using inpainting')
                             if cond_image is not None:
-                                if inverse_inpainting_mask: cond_image = 1 - cond_image
+                                if config.inverse_inpainting_mask: cond_image = 1 - cond_image
                                 cond_image = Image.fromarray((cond_image * 255).astype('uint8'))
 
                             batch = make_batch_sd(Image.open(init_image).resize((W, H)), cond_image, txt=prompt, device=device, num_samples=1, inpainting_mask_weight=config.inpainting_mask_weight)

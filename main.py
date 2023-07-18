@@ -49,7 +49,7 @@ if __name__ == "__main__":
     video_config.mask_video_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance_mask.mp4"
     mask_video_frame(video_config)
 
-    # download_reference_repository(video_config.animation_mode)
+    download_reference_repository(video_config.animation_mode)
     # 使用光流脚本生成光流图，生成一致性图
     video_config.flow_warp = False # 使用光流
     video_config.use_jit_raft = False #  使用torch jit的版本，不适用torch2.0
@@ -81,7 +81,9 @@ if __name__ == "__main__":
     lora_embedding_config.custom_embed_dir = '/data/tianhao/warp_fussion/models/embeddings'
     set_lora_embedding(lora_embedding_config)
 
+    #controlnet 1.1 ReferenceControl 的实现,图生图
     ref_config = ReferenceConfig()
+    ref_config.use_reference = True
     reference_control(ref_config, model_config.sd_model, main_config.reference_latent)
 
     prepare_run(main_config)

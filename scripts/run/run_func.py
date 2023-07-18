@@ -34,6 +34,7 @@ from scripts.run.run_env import stop_on_next_loop, VERBOSE, diffusion_model
 from scripts.run.sd_function import match_color_var, run_sd
 from scripts.settings.main_config import MainConfig
 from scripts.settings.setting import batch_name, batchFolder, side_x, side_y
+from scripts.utils.env import toto_dir
 from scripts.video_process.color_transfor_func import warp, warp_lat, k_means_warp, load_cc, fit, get_flow
 from scripts.video_process.video_config import VideoConfig
 from scripts.model_process.model_env import model_version
@@ -97,11 +98,11 @@ def do_run(main_config: MainConfig,
                 init_image = f'{video_config.videoFramesFolder}/{frame_num + 1:06}.jpg'
                 if main_config.use_background_mask:
                     init_image_pil = Image.open(init_image)
-                    init_image_pil.save(f"toto_out/init_image.png")
+                    init_image_pil.save(f"{toto_dir}/init_image.png")
                     init_image_pil = apply_mask(init_image_pil, frame_num, main_config.background, main_config.background_source, main_config, video_config, model_config.sd_model,
                                                 main_config.invert_mask)
-                    init_image_pil.save(f'init_alpha_{frame_num}.png')
-                    init_image = f'init_alpha_{frame_num}.png'
+                    init_image_pil.save(f'{toto_dir}/init_alpha_{frame_num}.png')
+                    init_image = f'{toto_dir}/init_alpha_{frame_num}.png'
                 if (args.init_image != '') and args.init_image is not None:
                     init_image = args.init_image
                     if main_config.use_background_mask:
