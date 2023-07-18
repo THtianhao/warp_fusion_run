@@ -769,9 +769,9 @@ def do_3d_step(img_filepath, frame_num, main_config: MainConfig, video_config: V
         #   return warped
         if VERBOSE: print('creating bg mask for frame ', frame_num)
         if main_config.warp_mode == 'use_latent':
-            warped = apply_mask(warped, frame_num, main_config.background, main_config.background_source, main_config.invert_mask, main_config.warp_mode)
+            warped = apply_mask(warped, frame_num, main_config.background, main_config.background_source, main_config, video_config, sd_model, main_config.invert_mask, main_config.warp_mode)
         else:
-            warped = apply_mask(warped, frame_num, main_config.background, main_config.background_source, main_config.invert_mask, main_config.warp_mode)
+            warped = apply_mask(warped, frame_num, main_config.background, main_config.background_source, main_config, video_config, sd_model, main_config.invert_mask, main_config.warp_mode)
         # warped.save(f'warped_{frame_num}.jpg')
 
     return warped

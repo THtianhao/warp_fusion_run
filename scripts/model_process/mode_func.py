@@ -55,7 +55,7 @@ def make_cond_model_fn(model, cond_fn):
             # with torch.enable_grad():
             # print(sigma**0.5, sigma, sigma**2)
             denoised = denoised.detach().requires_grad_()
-            cond_grad = cond_fn(x, sigma, denoised=denoised, **kwargs).detach();  # print(cond_grad.requires_grad)
+            cond_grad = cond_fn(x, sigma, denoised=denoised, **kwargs).detach()  # print(cond_grad.requires_grad)
             cond_denoised = denoised.detach() + cond_grad * k_diffusion.utils.append_dims(sigma ** 2, x.ndim)
         return cond_denoised
 
