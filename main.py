@@ -32,6 +32,11 @@ if __name__ == "__main__":
     main_config.check_consistency = False # 不检查光流一致性
     main_config.fixed_seed = True
     main_config.warp_forward = False #进行光流融合
+
+    # 使用红色背景
+    main_config.use_background_mask = True
+    main_config.background = 'color'
+    main_config.background_source = 'red'
     main_config.text_prompts = {0: ['Masterpiece, beautiful white marble statue, sculpture']}
 
     video_config = VideoConfig()
@@ -46,7 +51,7 @@ if __name__ == "__main__":
 
     # download_reference_repository(video_config.animation_mode)
     # 使用光流脚本生成光流图，生成一致性图
-    video_config.flow_warp = True # 使用光流
+    video_config.flow_warp = False # 使用光流
     video_config.use_jit_raft = False #  使用torch jit的版本，不适用torch2.0
     video_config.force_flow_generation = True
     video_config.flow_save_img_preview =True # 是否生成用户可读的光流图

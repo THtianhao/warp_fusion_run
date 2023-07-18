@@ -97,14 +97,17 @@ def do_run(main_config: MainConfig,
                 init_image = f'{video_config.videoFramesFolder}/{frame_num + 1:06}.jpg'
                 if main_config.use_background_mask:
                     init_image_pil = Image.open(init_image)
-                    init_image_pil = apply_mask(init_image_pil, frame_num, main_config.background, main_config.background_source, main_config.invert_mask)
+                    init_image_pil.save(f"toto_out/init_image.png")
+                    init_image_pil = apply_mask(init_image_pil, frame_num, main_config.background, main_config.background_source, main_config, video_config, model_config.sd_model,
+                                                main_config.invert_mask)
                     init_image_pil.save(f'init_alpha_{frame_num}.png')
                     init_image = f'init_alpha_{frame_num}.png'
                 if (args.init_image != '') and args.init_image is not None:
                     init_image = args.init_image
                     if main_config.use_background_mask:
                         init_image_pil = Image.open(init_image)
-                        init_image_pil = apply_mask(init_image_pil, frame_num, main_config.background, main_config.background_source, main_config.invert_mask)
+                        init_image_pil = apply_mask(init_image_pil, frame_num, main_config.background, main_config.background_source, main_config, video_config, model_config.sd_model,
+                                                    main_config.invert_mask)
                         init_image_pil.save(f'init_alpha_{frame_num}.png')
                         init_image = f'init_alpha_{frame_num}.png'
                 if main_config.VERBOSE: print('init image', args.init_image)

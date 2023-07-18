@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import pydevd_pycharm
 
+from scripts.model_process.load_sd_k_model import load_sd_and_k_fusion
 from scripts.video_process.video_flow import set_video_path
 
 pydevd_pycharm.settrace('49.7.62.197', port=10090, stdoutToServer=True, stderrToServer=True)
@@ -399,6 +400,7 @@ if __name__ == "__main__":
     video_config = VideoConfig()
     video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
     set_video_path(video_config)
+    load_sd_and_k_fusion(model_config, main_config)
     main_config.args = {
         'batchNum': 0,
         'batch_name': batch_name,
