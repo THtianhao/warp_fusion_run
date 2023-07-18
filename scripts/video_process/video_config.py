@@ -47,7 +47,7 @@ class VideoConfig:
     flo_bck_folder = ''
     in_path = ''
 
-    flow_warp = False
+    flow_warp = True
     check_consistency = True
     force_flow_generation = True  # @param {type:'boolean'}
 

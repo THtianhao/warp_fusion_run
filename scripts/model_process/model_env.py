@@ -8,7 +8,6 @@ from safetensors import safe_open
 from ldm.util import instantiate_from_config
 from scripts.utils.env import root_dir
 
-dynamic_thresh = 2.
 device = 'cuda'
 # config_path = f"{root_dir}/stable-diffusion/configs/stable-diffusion/v1-inference.yaml"
 

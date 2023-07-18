@@ -34,18 +34,17 @@ if __name__ == "__main__":
     main_config.warp_forward = False  # 进行光流融合
 
     # 使用红色背景
-    main_config.use_background_mask = False
-    main_config.background = 'color'
+    main_config.use_background_mask = True
+    main_config.background = 'init_video'
     main_config.background_source = 'red'
     main_config.text_prompts = {0: ['Masterpiece, beautiful white marble statue']}
 
-    main_config.latent_scale_schedule = [
-        100]  # controls coherency with previous frame in latent space. 0 is a good starting value. 1+ render slower, but may improve image coherency. 100 is a good value if you decide to turn it on.
-    main_config.init_scale_schedule = [1000]  # controls coherency with previous frame in pixel space. 0 - off, 1000 - a good starting value if you decide to turn it on.
+    # main_config.masked_guidance = True
+    # main_config.cc_masked_diffusion = 0.7
 
     video_config = VideoConfig()
     # video_config.video_init_path = "./res/dance.mp4"
-    video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance_mask.mp4"
+    video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
     set_video_path(video_config)
     extra_video_frame(video_config)
 
@@ -89,7 +88,7 @@ if __name__ == "__main__":
 
     # controlnet 1.1 ReferenceControl 的实现,图生图
     ref_config = ReferenceConfig()
-    ref_config.use_reference = True
+    # ref_config.use_reference = True
     reference_control(ref_config, model_config.sd_model, main_config.reference_latent)
 
     prepare_run(main_config)

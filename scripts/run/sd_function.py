@@ -206,9 +206,9 @@ def sd_cond_fn(x, t, denoised, init_image_sd, init_latent, init_scale,
             print('got NaN grad')
             return torch.zeros_like(x)
         if VERBOSE: printf('loss, grad', loss, grad.max(), grad.mean(), grad.std(), denoised.mean(), denoised.std())
-        if clip_config.clamp_grad:
+        if main_config.clamp_grad:
             magnitude = grad.square().mean().sqrt()
-            return grad * magnitude.clamp(max=clip_config.clamp_max) / magnitude
+            return grad * magnitude.clamp(max=main_config.clamp_max) / magnitude
 
     return grad
 
