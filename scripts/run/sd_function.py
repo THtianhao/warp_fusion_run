@@ -100,7 +100,9 @@ from torch.nn import functional as F
 from torch.cuda.amp import GradScaler
 
 def sd_cond_fn(x, t, denoised, init_image_sd, init_latent, init_scale,
-               init_latent_scale, target_embed, consistency_mask, main_config: MainConfig, clip_config: ClipConfig, guidance_start_code=None,
+               init_latent_scale, target_embed, consistency_mask,
+               main_config: MainConfig, clip_config: ClipConfig,
+               model_config: ModelConfig, guidance_start_code=None,
                deflicker_fn=None, deflicker_lat_fn=None, deflicker_src=None,
                **kwargs):
     if main_config.use_scale: scaler = GradScaler()
@@ -138,7 +140,7 @@ def sd_cond_fn(x, t, denoised, init_image_sd, init_latent, init_scale,
         if main_config.sat_scale > 0 or init_scale > 0 or clip_config.clip_guidance_scale > 0 or main_config.deflicker_scale > 0:
             with torch.autocast('cuda'):
                 denoised_small = denoised[:, :, ::2, ::2]
-                denoised_img = main_config.model_wrap_cfg.inner_model.inner_model.differentiable_decode_first_stage(denoised_small)
+                denoised_img = model_config.model_wrap_cfg.inner_model.inner_model.differentiable_decode_first_stage(denoised_small)
 
         if clip_config.clip_guidance_scale > 0:
             # compare text clip embeds with denoised image embeds
@@ -851,6 +853,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                                   consistency_mask=consistency_mask_t,
                                                   main_config=config,
                                                   clip_config=clip_config,
+                                                  model_config=model_config,
                                                   start_code=guidance_start_code,
                                                   deflicker_fn=deflicker_fn, deflicker_lat_fn=deflicker_lat_fn, deflicker_src=deflicker_src
                                                   )
