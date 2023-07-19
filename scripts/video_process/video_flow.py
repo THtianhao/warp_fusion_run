@@ -62,7 +62,7 @@ def extra_video_frame(config: VideoConfig):
             print(config.color_video_path, config.colorVideoFramesFolder, config.color_extract_nth_frame)
             extractFrames(config.color_video_path, config.colorVideoFramesFolder, config.color_extract_nth_frame, config.start_frame, config.end_frame)
 
-def mask_video_frame(bean: VideoConfig):
+def extra_background_mask(bean: VideoConfig):
     if bean.extract_background_mask:
         os.chdir(root_dir)
         pipi('av')
