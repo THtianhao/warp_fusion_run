@@ -397,6 +397,9 @@ def generate_video(model_config: ModelConfig, video_config: VideoConfig, main_co
 if __name__ == "__main__":
     main_config = MainConfig()
     model_config = ModelConfig()
+    model_config.force_download = False
+    model_config.model_path = '/data/tianhao/stable-diffusion-webui/models/Stable-diffusion/deliberate_v2.safetensors'
+    model_config.controlnet_models_dir = '/data/tianhao/warp_fussion/ControlNet/models'
     video_config = VideoConfig()
     video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
     set_video_path(video_config)
