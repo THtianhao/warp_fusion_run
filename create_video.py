@@ -18,7 +18,7 @@ import torch
 from PIL import Image
 # @title ### **Create video**
 # @markdown Video file will save in the same folder as your images.
-from tqdm.notebook import trange, tqdm
+from tqdm.notebook import tqdm
 
 from scripts.model_process.model_config import ModelConfig
 from scripts.run.run_common_func import printf
@@ -169,7 +169,6 @@ def generate_video(model_config: ModelConfig, video_config: VideoConfig, main_co
     else:
         # import subprocess in case this cell is run without the above cells
         import subprocess
-        from base64 import b64encode
 
         from multiprocessing.pool import ThreadPool as Pool
 
