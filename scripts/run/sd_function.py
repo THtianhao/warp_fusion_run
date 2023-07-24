@@ -607,7 +607,7 @@ import contextlib
 
 none_context = contextlib.nullcontext()
 
-def masked_callback(config: MainConfig,args, callback_steps, masks, init_latent,start_code):
+def masked_callback(args, callback_steps, masks, init_latent, start_code, config):
     # print('callback_step', callback_step)
     # print([o.shape for o in masks])
     init_latent = init_latent.clone()
@@ -630,7 +630,7 @@ def masked_callback(config: MainConfig,args, callback_steps, masks, init_latent,
     if mask is not None:
         # PIL.Image.fromarray(np.repeat(mask.clone().cpu().numpy()[0,0,...][...,None],3, axis=2).astype('uint8')*255).save(f'{root_dir}/{args["i"]}.jpg')
         if config.cb_use_start_code:
-            noise = config.start_code
+            noise = start_code
         else:
             noise = torch.randn_like(args['x'])
         noise = noise * args['sigma']
@@ -882,11 +882,11 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
 
                             if VERBOSE: print('callback steps', callback_steps)
                             callback_partial = partial(masked_callback,
-                                                       config = config,
-                                                       args = config.args,
                                                        callback_steps=callback_steps,
                                                        masks=callback_masks,
-                                                       init_latent=init_latent, start_code=start_code_cb)
+                                                       init_latent=init_latent,
+                                                       start_code=start_code_cb,
+                                                       config=config)
                         if config.new_prompt_loras == {}:
                             # only use cond fn when loras are off
                             model_fn = make_cond_model_fn(model_config.model_wrap_cfg, cond_fn_partial)

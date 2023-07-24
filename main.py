@@ -39,6 +39,9 @@ if __name__ == "__main__":
     main_config.background_source = 'red'
     main_config.text_prompts = {0: ['Masterpiece, beautiful white marble statue']}
 
+    # 使用一致性进行生成mask
+    main_config.masked_guidance = True
+
     # main_config.masked_guidance = True
     # main_config.cc_masked_diffusion = 0.7
 
