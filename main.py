@@ -39,9 +39,6 @@ if __name__ == "__main__":
     main_config.background_source = 'red'
     main_config.text_prompts = {0: ['Masterpiece, beautiful white marble statue']}
 
-    # 使用一致性进行生成mask
-    main_config.masked_guidance = True
-
     # main_config.masked_guidance = True
     # main_config.cc_masked_diffusion = 0.7
 
@@ -58,7 +55,7 @@ if __name__ == "__main__":
 
     download_reference_repository(video_config.animation_mode)
     # 使用光流脚本生成光流图，生成一致性图
-    video_config.flow_warp = False  # 使用光流
+    video_config.flow_warp = True  # 使用光流
     video_config.use_jit_raft = False  # 使用torch jit的版本，不适用torch2.0
     video_config.force_flow_generation = True
     video_config.flow_save_img_preview = True  # 是否生成用户可读的光流图

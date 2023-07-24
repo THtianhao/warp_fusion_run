@@ -141,7 +141,7 @@ class MainConfig:
     latent_norm_4d = True  # @param {'type':'boolean'}
     # @markdown ###Color matching
     # @markdown Color match frame towards stylized or raw init frame. Helps prevent images going deep purple. As a drawback, may lock colors to the selected fixed frame. Select stylized_frame with colormatch_offset = 0 to reproduce previous notebooks.
-    colormatch_frame = 'stylized_frame'  # @param ['off', 'color_video', 'color_video_offset','stylized_frame', 'init_frame', 'stylized_frame_offset', 'init_frame_offset']
+    colormatch_frame = 'off'  # @param ['off', 'color_video', 'color_video_offset','stylized_frame', 'init_frame', 'stylized_frame_offset', 'init_frame_offset']
     # @markdown Color match strength. 1 mimics legacy behavior
     color_match_frame_str = 0.5  # @param {'type':'number'}
     # @markdown in offset mode, specifies the offset back from current frame, and 0 means current frame. In non-offset mode specifies the fixed frame number. 0 means the 1st frame.
