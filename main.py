@@ -1,3 +1,4 @@
+import scripts.settings.setting
 from scripts.utils.env import root_dir
 
 print(root_dir)
@@ -45,6 +46,7 @@ if __name__ == "__main__":
     video_config = VideoConfig()
     # video_config.video_init_path = "./res/dance.mp4"
     video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
+    # Video Mask Setting
     video_config.mask_source = 'init_video'
     video_config.extract_background_mask = True
     video_config.mask_video_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
@@ -58,7 +60,7 @@ if __name__ == "__main__":
     video_config.flow_warp = True  # 使用光流
     video_config.use_jit_raft = False  # 使用torch jit的版本，不适用torch2.0
     video_config.force_flow_generation = True
-    video_config.flow_save_img_preview = True  # 是否生成用户可读的光流图
+    video_config.flow_save_img_preview = False  # 是否生成用户可读的光流图
     video_config.flow_lq = True  # 使用半精度
     generate_optical_flow(video_config)
 

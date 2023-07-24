@@ -14,7 +14,7 @@ import torch
 from PIL import Image
 from tqdm import tqdm
 
-from annotator.uniformer.mmcv import DataLoader
+from torch.utils.data import DataLoader
 from scripts.settings.setting import side_x, side_y
 from scripts.utils.env import root_dir
 from scripts.video_process.color_transfor_func import save_preview, make_cc_map, vstack, hstack, fit
@@ -159,5 +159,6 @@ def generate_optical_flow(bean: VideoConfig):
         vframes.append(v_imgs)
     if vframes:
         preview = hstack(vframes)
+        preview.save("combine_preview.png")
         del vframes, hframes
         fit(preview, 1024)

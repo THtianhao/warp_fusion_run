@@ -1288,6 +1288,40 @@ def deflicker_loss(processed2, processed1, raw1, raw2, criterion1, criterion2):
     proc_diff = criterion1(processed1, processed2)
     return criterion2(raw_diff, proc_diff)
 
+def draw_pupils(image, landmark_list, drawing_spec, halfwidth: int = 2):
+    """We have a custom function to draw the pupils because the mp.draw_landmarks method requires a parameter for all
+    landmarks.  Until our PR is merged into mediapipe, we need this separate method."""
+    if len(image.shape) != 3:
+        raise ValueError("Input image must be H,W,C.")
+    image_rows, image_cols, image_channels = image.shape
+    if image_channels != 3:  # BGR channels
+        raise ValueError('Input image must contain three channel bgr data.')
+    for idx, landmark in enumerate(landmark_list.landmark):
+        if (
+                (landmark.HasField('visibility') and landmark.visibility < 0.9) or
+                (landmark.HasField('presence') and landmark.presence < 0.5)
+        ):
+            continue
+        if landmark.x >= 1.0 or landmark.x < 0 or landmark.y >= 1.0 or landmark.y < 0:
+            continue
+        image_x = int(image_cols * landmark.x)
+        image_y = int(image_rows * landmark.y)
+        draw_color = None
+        if isinstance(drawing_spec, Mapping):
+            if drawing_spec.get(idx) is None:
+                continue
+            else:
+                draw_color = drawing_spec[idx].color
+        elif isinstance(drawing_spec, DrawingSpec):
+            draw_color = drawing_spec.color
+        image[image_y - halfwidth:image_y + halfwidth, image_x - halfwidth:image_x + halfwidth, :] = draw_color
+
+def reverse_channels(image):
+    """Given a numpy array in RGB form, convert to BGR.  Will also convert from BGR to RGB."""
+    # im[:,:,::-1] is a neat hack to convert BGR to RGB by reversing the indexing order.
+    # im[:,:,::[2,1,0]] would also work but makes a copy of the data.
+    return image[:, :, ::-1]
+
 def generate_annotation(
         input_image: Image.Image,
         max_faces: int,
@@ -1382,37 +1416,3 @@ def generate_annotation(
             return empty
         else:
             return empty, annotated, faces_found_before_filtering, faces_remaining_after_filtering
-
-def draw_pupils(image, landmark_list, drawing_spec, halfwidth: int = 2):
-    """We have a custom function to draw the pupils because the mp.draw_landmarks method requires a parameter for all
-    landmarks.  Until our PR is merged into mediapipe, we need this separate method."""
-    if len(image.shape) != 3:
-        raise ValueError("Input image must be H,W,C.")
-    image_rows, image_cols, image_channels = image.shape
-    if image_channels != 3:  # BGR channels
-        raise ValueError('Input image must contain three channel bgr data.')
-    for idx, landmark in enumerate(landmark_list.landmark):
-        if (
-                (landmark.HasField('visibility') and landmark.visibility < 0.9) or
-                (landmark.HasField('presence') and landmark.presence < 0.5)
-        ):
-            continue
-        if landmark.x >= 1.0 or landmark.x < 0 or landmark.y >= 1.0 or landmark.y < 0:
-            continue
-        image_x = int(image_cols * landmark.x)
-        image_y = int(image_rows * landmark.y)
-        draw_color = None
-        if isinstance(drawing_spec, Mapping):
-            if drawing_spec.get(idx) is None:
-                continue
-            else:
-                draw_color = drawing_spec[idx].color
-        elif isinstance(drawing_spec, DrawingSpec):
-            draw_color = drawing_spec.color
-        image[image_y - halfwidth:image_y + halfwidth, image_x - halfwidth:image_x + halfwidth, :] = draw_color
-
-def reverse_channels(image):
-    """Given a numpy array in RGB form, convert to BGR.  Will also convert from BGR to RGB."""
-    # im[:,:,::-1] is a neat hack to convert BGR to RGB by reversing the indexing order.
-    # im[:,:,::[2,1,0]] would also work but makes a copy of the data.
-    return image[:, :, ::-1]

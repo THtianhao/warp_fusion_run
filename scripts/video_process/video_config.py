@@ -4,6 +4,7 @@ from scripts.settings.setting import side_x, side_y
 
 @dataclass
 class VideoConfig:
+    # ===========base video settings========================
     animation_mode = 'Video Input'
     video_init_path = ""
     extract_nth_frame = 1  # @param {type: 'number'}
@@ -47,6 +48,16 @@ class VideoConfig:
     flo_bck_folder = ''
     in_path = ''
 
+
+    #===========mask video config========================
+    # Generate background mask from your init video or use a video as a mask
+    mask_source = 'init_video'  # @param ['init_video','mask_video']
+    # Check to rotoscope the video and create a mask from it. If unchecked, the raw monochrome video will be used as a mask.
+    extract_background_mask = False  # @param {'type':'boolean'}
+    # Specify path to a mask video for mask_video mode.
+    mask_video_path = ''  # @param {'type':'string
+
+    #============optical flow config=====================
     flow_warp = True
     check_consistency = True
     force_flow_generation = True  # @param {type:'boolean'}
@@ -79,11 +90,3 @@ class VideoConfig:
     # \@markdown Motion edge areas (edge consistency) width
     # \@markdown Default = 11
     edge_consistency_width = 11  # \@param {'type':'number'}
-
-    #===========mask video config========================
-    # Generate background mask from your init video or use a video as a mask
-    mask_source = 'init_video'  # @param ['init_video','mask_video']
-    # Check to rotoscope the video and create a mask from it. If unchecked, the raw monochrome video will be used as a mask.
-    extract_background_mask = False  # @param {'type':'boolean'}
-    # Specify path to a mask video for mask_video mode.
-    mask_video_path = ''  # @param {'type':'string'
