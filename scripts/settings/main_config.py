@@ -250,7 +250,7 @@ class MainConfig:
     max_faces = 10
     masked_guidance = False  # use mask for init/latent guidance to ignore inconsistencies and only guide based on the consistent areas
     cc_masked_diffusion = 0.  # 0 - off. 0.5-0.7 are good values. make inconsistent area passes only before this % of actual steps, then diffuse whole image
-    alpha_masked_diffusion = 0.  # 0 - off. 0.5-0.7 are good values. make alpha masked area passes only before this % of actual steps, then diffuse whole image
+    alpha_masked_diffusion = 0.7  # 0 - off. 0.5-0.7 are good values. make alpha masked area passes only before this % of actual steps, then diffuse whole image
     invert_alpha_masked_diffusion = False
 
     save_controlnet_annotations = True

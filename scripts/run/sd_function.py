@@ -607,7 +607,7 @@ import contextlib
 
 none_context = contextlib.nullcontext()
 
-def masked_callback(args, callback_steps, masks, init_latent, config: MainConfig):
+def masked_callback(config: MainConfig,args, callback_steps, masks, init_latent,start_code):
     # print('callback_step', callback_step)
     # print([o.shape for o in masks])
     init_latent = init_latent.clone()
@@ -882,6 +882,8 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
 
                             if VERBOSE: print('callback steps', callback_steps)
                             callback_partial = partial(masked_callback,
+                                                       config = config,
+                                                       args = config.args,
                                                        callback_steps=callback_steps,
                                                        masks=callback_masks,
                                                        init_latent=init_latent, start_code=start_code_cb)
