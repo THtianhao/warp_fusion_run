@@ -37,6 +37,12 @@ def set_video_path(config: VideoConfig):
             config.controlnetDebugFolder = f'{root_dir}/controlnetDebug'
             config.recNoiseCacheFolder = f'{root_dir}/recNoiseCache'
 
+        config.videoFramesFolder = f'{batchFolder}/videoFrames/{postfix}'
+        config.flowVideoFramesFolder = f'{batchFolder}/flowVideoFrames/{flow_postfix}' if config.flow_video_init_path else videoFramesFolder
+        config.condVideoFramesFolder = f'{batchFolder}/condVideoFrames'
+        config.colorVideoFramesFolder = f'{batchFolder}/colorVideoFrames'
+        config.controlnetDebugFolder = f'{batchFolder}/controlnetDebug'
+        config.recNoiseCacheFolder = f'{batchFolder}/recNoiseCache'
         os.makedirs(config.controlnetDebugFolder, exist_ok=True)
         os.makedirs(config.recNoiseCacheFolder, exist_ok=True)
         config.in_path = config.videoFramesFolder if not config.flow_video_init_path else config.flowVideoFramesFolder

@@ -103,7 +103,10 @@ def generate_optical_flow(bean: VideoConfig):
                 # flo_fwd_folder = in_path+'_out_flo_fwd'
                 flo_fwd_folder = bean.in_path + f'_out_flo_fwd/{side_x}_{side_y}/'
                 for f in pathlib.Path(f'{flo_fwd_folder}').glob('*.*'):
-                    f.unlink()
+                    try:
+                        f.unlink()
+                    except:
+                        pass
 
                 os.makedirs(flo_fwd_folder, exist_ok=True)
                 os.makedirs(temp_flo, exist_ok=True)
@@ -136,6 +139,7 @@ def generate_optical_flow(bean: VideoConfig):
     flo_imgs = glob(bean.flo_fwd_folder + '/*.jpg.jpg')[:5]
     vframes = []
     for flo_img in flo_imgs:
+        print(f'flo_img = {flo_img}')
         hframes = []
         flo_img = flo_img.replace('\\', '/')
         frame = Image.open(bean.videoFramesFolder + '/' + flo_img.split('/')[-1][:-4])
@@ -159,6 +163,6 @@ def generate_optical_flow(bean: VideoConfig):
         vframes.append(v_imgs)
     if vframes:
         preview = hstack(vframes)
-        preview.save("combine_preview.png")
+        preview.save(f'{root_dir}/combine_preview.png')
         del vframes, hframes
         fit(preview, 1024)
