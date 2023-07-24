@@ -909,7 +909,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                 for key in config.loaded_controlnets.keys():
                                     config.loaded_controlnets[key].cuda()
 
-                            models = list(config.controlnet_multimodel.keys());
+                            models = list(config.controlnet_multimodel.keys())
                             print(models)
                         else:
                             models = model_version

@@ -88,7 +88,7 @@ def adjust_brightness(image):
 
 # @title Define optical flow functions for Video input animation mode only
 # if animation_mode == 'Video Input Legacy':
-DEBUG = False
+DEBUG = True
 
 # Flow visualization code used from https://github.com/tomrunia/OpticalFlow_Visualization
 
