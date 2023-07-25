@@ -667,6 +667,8 @@ def do_run(main_config: MainConfig,
 
         plt.plot(np.array(loss_values), 'r')
     batchBar.close()
+    gc.collect()
+    torch.cuda.empty_cache()
 
 def do_3d_step(img_filepath, frame_num, main_config: MainConfig, video_config: VideoConfig, sd_model, forward_clip):
     if main_config.warp_mode == 'use_image':

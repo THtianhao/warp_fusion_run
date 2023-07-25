@@ -855,7 +855,9 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                                   clip_config=clip_config,
                                                   model_config=model_config,
                                                   start_code=guidance_start_code,
-                                                  deflicker_fn=deflicker_fn, deflicker_lat_fn=deflicker_lat_fn, deflicker_src=deflicker_src
+                                                  deflicker_fn=deflicker_fn,
+                                                  deflicker_lat_fn=deflicker_lat_fn,
+                                                  deflicker_src=deflicker_src
                                                   )
                         callback_partial = None
                         if config.cc_masked_diffusion and consistency_mask is not None or config.alpha_masked_diffusion and alpha_mask is not None:

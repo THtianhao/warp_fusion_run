@@ -80,6 +80,7 @@ if __name__ == "__main__":
 
     content_aware_config = ContentAwareConfig()
     content_aware(content_aware_config, video_config.videoFramesFolder)
+
     captioning_config = CaptioningConfig()
     generate_key_frame(captioning_config, video_config.videoFramesFolder, content_aware_config.diff)
 

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 class ContentAwareConfig:
     analyze_video = False  # @param {'type':'boolean'}
     diff_function = 'lpips'  # @param ['rmse','lpips','rmse+lpips']
-    diff = [0]
+    diff = None
     # @markdown fill in templates for schedules you'd like to create from frames' difference\
     # @markdown leave blank to use schedules from previous cells\
     # @markdown format: **[normal value, high difference value, difference threshold, falloff from high to normal (number of frames)]**\
