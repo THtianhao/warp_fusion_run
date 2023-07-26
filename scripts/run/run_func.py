@@ -592,8 +592,8 @@ def do_run(main_config: MainConfig,
                         if VERBOSE: print('Matching latent to:')
                         filename = get_frame_from_color_mode(main_config.normalize_latent, main_config.normalize_latent_offset, frame_num, video_config, args)
                         match_latent = img2latent(filename)
-                        first_latent = match_latent
-                        first_latent_source = filename
+                        main_config.first_latent = match_latent
+                        main_config.first_latent_source = filename
                         # print(first_latent_source, first_latent)
                     except:
                         if VERBOSE: print(traceback.format_exc())
@@ -602,8 +602,8 @@ def do_run(main_config: MainConfig,
                             try:
                                 filename = f'{video_config.videoFramesFolder}/{0:06}.jpg'
                                 match_latent = img2latent(filename)
-                                first_latent = match_latent
-                                first_latent_source = filename
+                                main_config.first_latent = match_latent
+                                main_config.first_latent_source = filename
                             except:
                                 pass
                         print(f'Color matching the 1st frame.')

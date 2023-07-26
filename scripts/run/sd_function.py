@@ -90,7 +90,7 @@ import time
 import PIL
 from pytorch_lightning import seed_everything
 from python_color_transfer.color_transfer import ColorTransfer, Regrain
-from tqdm.auto import trange
+from tqdm.notebook import trange
 
 from kornia import augmentation as KA
 
@@ -1234,8 +1234,8 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                 # noise = torch.nn.functional.interpolate(noise, scale_factor=4, mode='bilinear')
                             if t_enc != 0:
                                 xi = x0 + noise
-                                # printf('xi', xi.shape, xi.min().item(), xi.max().item(), xi.std().item(), xi.mean().item())
-                                # print(xi.mean(), xi.std(), xi.min(), xi.max())
+                                print('xi', xi.shape, xi.min().item(), xi.max().item(), xi.std().item(), xi.mean().item())
+                                print(xi.mean(), xi.std(), xi.min(), xi.max())
                                 sigma_sched = sigmas[ddim_steps - t_enc - 1:]
                                 # sigma_sched = sigmas[ddim_steps - t_enc:]
                                 samples_ddim = sample_euler(model_fn, xi, sigma_sched, extra_args=extra_args, callback=callback_partial)
@@ -1271,7 +1271,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                         gc.collect()
                         torch.cuda.empty_cache()
                         x_samples_ddim = model_config.sd_model.decode_first_stage(samples_ddim)
-                        printf('x_samples_ddim', x_samples_ddim.min(), x_samples_ddim.max(), x_samples_ddim.std(), x_samples_ddim.mean())
+                        print('x_samples_ddim', x_samples_ddim.min(), x_samples_ddim.max(), x_samples_ddim.std(), x_samples_ddim.mean())
                         scale_raw_sample = False
                         if scale_raw_sample:
                             m = x_samples_ddim.mean()
