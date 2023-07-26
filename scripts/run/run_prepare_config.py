@@ -22,7 +22,7 @@ from scripts.lora_embedding.lora_embedding_config import LoraEmbeddingConfig
 from scripts.lora_embedding.lora_embedding_fun import inject_lora, split_lora_from_prompts
 from scripts.model_process.model_config import ModelConfig
 from scripts.model_process.model_env import model_version, control_model_urls, load_to
-from scripts.run.run_env import diffusion_sampling_mode
+from scripts.run.run_env import diffusion_sampling_mode, loaded_controlnets
 from scripts.settings.main_config import MainConfig
 from scripts.settings.setting import batch_name, batchFolder, steps, width_height, clip_guidance_scale, tv_scale, range_scale, cutn_batches, init_image, init_scale, skip_steps, side_x, side_y, \
     skip_augs
@@ -70,12 +70,11 @@ def run_prepare_config(main_config: MainConfig,
                         print(f'Downloaded small {controlnet} model.')
 
         print('Loading ControlNet Models')
-        main_config.loaded_controlnets = {}
         for controlnet in main_config.controlnet_multimodel.keys():
             controlnet_settings = main_config.controlnet_multimodel[controlnet]
             weight = controlnet_settings["weight"]
             if weight != 0:
-                main_config.loaded_controlnets[controlnet] = copy.deepcopy(sd_model.control_model)
+                loaded_controlnets[controlnet] = copy.deepcopy(sd_model.control_model)
                 small_url = control_model_urls[controlnet]
                 local_filename = small_url.split('/')[-1]
                 small_controlnet_model_path = f"{model_config.controlnet_models_dir}/{local_filename}"
@@ -103,8 +102,8 @@ def run_prepare_config(main_config: MainConfig,
                     del pl_sd
 
                     gc.collect()
-                    m, u = main_config.loaded_controlnets[controlnet].load_state_dict(sd, strict=True)
-                    main_config.loaded_controlnets[controlnet].half()
+                    m, u = loaded_controlnets[controlnet].load_state_dict(sd, strict=True)
+                    loaded_controlnets[controlnet].half()
                 else:
                     print('Small controlnet model not found in path but specified in settings. Please adjust settings or check controlnet path.')
                     sys.exit(0)

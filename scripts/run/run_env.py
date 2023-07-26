@@ -4,3 +4,4 @@ VERBOSE = True
 blend_json_schedules = False
 diffusion_model = "stable_diffusion"
 diffusion_sampling_mode = 'ddim'
+loaded_controlnets = {}

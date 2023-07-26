@@ -18,7 +18,7 @@ from scripts.model_process.model_config import ModelConfig
 from scripts.model_process.model_env import device, model_version, quantize, no_half_vae
 from scripts.refrerence_control_processor.reference_config import ReferenceConfig
 from scripts.run.run_common_func import printf
-from scripts.run.run_env import VERBOSE, diffusion_model
+from scripts.run.run_env import VERBOSE, diffusion_model, loaded_controlnets
 from scripts.settings.main_config import MainConfig
 from scripts.settings.setting import normalize, lpips_model, init_image, width_height
 from scripts.video_process.color_transfor_func import high_brightness_threshold, high_brightness_adjust_ratio, low_brightness_threshold, low_brightness_adjust_ratio, high_brightness_adjust_fix_amount, \
@@ -556,7 +556,7 @@ def find_noise_for_image_sigma_adjustment(init_latent, prompt, image_conditionin
 
                 cond_in = {"c_crossattn": [cond_in], 'c_concat': img_in,
                            'controlnet_multimodel': main_config.controlnet_multimodel,
-                           'loaded_controlnets': main_config.loaded_controlnets}
+                           'loaded_controlnets': loaded_controlnets}
 
         c_out, c_in = [K.utils.append_dims(k, x_in.ndim) for k in dnw.get_scalings(sigma_in)[skip:]]
 
@@ -908,8 +908,8 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                         detected_maps = {}
                         if model_version == 'control_multi':
                             if config.offload_model:
-                                for key in config.loaded_controlnets.keys():
-                                    config.loaded_controlnets[key].cuda()
+                                for key in loaded_controlnets.keys():
+                                    loaded_controlnets[key].cuda()
 
                             models = list(config.controlnet_multimodel.keys())
                             print(models)
@@ -1265,8 +1265,8 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                             model_config.sd_model.model.cpu()
                             model_config.sd_model.cond_stage_model.cpu()
                             if model_version == 'control_multi':
-                                for key in config.loaded_controlnets.keys():
-                                    config.loaded_controlnets[key].cpu()
+                                for key in loaded_controlnets.keys():
+                                    loaded_controlnets[key].cpu()
 
                         gc.collect()
                         torch.cuda.empty_cache()
