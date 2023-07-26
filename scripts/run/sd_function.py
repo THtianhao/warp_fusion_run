@@ -1124,7 +1124,7 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
                                 control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
                                 control = torch.stack([control for _ in range(num_samples)], dim=0)
                                 depth_cond = einops.rearrange(control, 'b h w c -> b c h w').clone()
-                                # if VERBOSE: print('depth_cond', depth_cond.min(), depth_cond.max(), depth_cond.mean(), depth_cond.std(), depth_cond.shape)
+                                if VERBOSE: print('depth_cond', depth_cond.min(), depth_cond.max(), depth_cond.mean(), depth_cond.std(), depth_cond.shape)
                                 return depth_cond
 
                             if model_version == 'control_multi':
