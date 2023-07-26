@@ -964,11 +964,8 @@ def run_sd(opt, init_image, skip_timesteps, H, W, text_prompt, neg_prompt, steps
 
                             if 'control_sd15_normalbae' in models:
                                 if config.offload_model: config.apply_normal.model.cuda()
-                                input_image = HWC3(np.array(input_image));
-                                print(type(input_image))
-
-                                input_image = resize_image(input_image, config.detect_resolution);
-                                print((input_image.dtype))
+                                input_image = HWC3(np.array(input_image))
+                                input_image = resize_image(input_image, config.detect_resolution)
                                 with torch.cuda.amp.autocast(True), torch.no_grad():
                                     detected_map = config.apply_normal(input_image)  # , bg_th=bg_threshold)
                                 detected_map = HWC3(detected_map)
