@@ -2,9 +2,8 @@ import scripts.settings.setting
 from scripts.utils.env import root_dir
 
 print(root_dir)
-import pydevd_pycharm
-
-pydevd_pycharm.settrace('49.7.62.197', port=10090, stdoutToServer=True, stderrToServer=True)
+# import pydevd_pycharm
+# pydevd_pycharm.settrace('49.7.62.197', port=10090, stdoutToServer=True, stderrToServer=True)
 
 from scripts.lora_embedding.lora_and_embedding_ import set_lora_embedding
 from scripts.lora_embedding.lora_embedding_config import LoraEmbeddingConfig
@@ -57,7 +56,7 @@ if __name__ == "__main__":
 
     download_reference_repository(video_config.animation_mode)
     # 使用光流脚本生成光流图，生成一致性图
-    video_config.flow_warp = True  # 使用光流
+    video_config.flow_warp = False  # 使用光流
     video_config.use_jit_raft = False  # 使用torch jit的版本，不适用torch2.0
     video_config.force_flow_generation = True
     video_config.flow_save_img_preview = False  # 是否生成用户可读的光流图

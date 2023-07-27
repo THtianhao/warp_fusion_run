@@ -306,6 +306,8 @@ def run_prepare_config(main_config: MainConfig,
         while os.path.isfile(f"{settings_out}/{batch_name}({batchNum})_settings.txt") is True or os.path.isfile(f"{batchFolder}/{batch_name}-{batchNum}_settings.txt") is True:
             batchNum += 1
 
+    batchNum = 2
+
     print(f'Starting Run: {batch_name}({batchNum}) at frame {start_frame}')
 
     if main_config.set_seed == 'random_seed' or main_config.set_seed == -1:
