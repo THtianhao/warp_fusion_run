@@ -6,6 +6,7 @@ import random
 import re
 import shutil
 import traceback
+from datetime import datetime
 
 import PIL
 import cv2
@@ -29,7 +30,7 @@ from scripts.lora_embedding.lora_embedding_fun import get_loras_weights_for_fram
 from scripts.model_process.mode_func import spherical_dist_loss
 from scripts.model_process.model_config import ModelConfig
 from scripts.refrerence_control_processor.reference_config import ReferenceConfig
-from scripts.run.run_common_func import get_scheduled_arg, get_sched_from_json, printf
+from scripts.run.run_common_func import get_scheduled_arg, get_sched_from_json, printf, copy_and_rename_file
 from scripts.run.run_env import stop_on_next_loop, VERBOSE, diffusion_model
 from scripts.run.sd_function import match_color_var, run_sd
 from scripts.settings.main_config import MainConfig
@@ -54,10 +55,24 @@ def do_run(main_config: MainConfig,
     print(range(args.start_frame, args.max_frames))
     if args.animation_mode != "None":
         batchBar = tqdm(total=args.max_frames, desc="Frames")
-
+    start_time = datetime.now()
     # if (args.animation_mode == 'Video Input') and (args.midas_weight > 0.0):
     # midas_model, midas_transform, midas_net_w, midas_net_h, midas_resize_mode, midas_normalization = init_midas_depth_model(args.midas_depth_model)
+
     for frame_num in range(args.start_frame, args.max_frames):
+        keep_frame = get_scheduled_arg(frame_num, main_config.keep_frame)
+        if keep_frame:
+            print(f'keep frame{frame_num}')
+            keep_image_name = f'{video_config.videoFramesFolder}/{frame_num + 1:06}.jpg'
+            des_image_name = f'{args.batch_name}({args.batchNum})_{frame_num:06}.png'
+            copy_and_rename_file(keep_image_name, batchFolder, des_image_name)
+            continue
+
+        current_time = datetime.now()
+        diff_time = current_time - start_time
+        diff_seconds = max(diff_time.total_seconds(), 1)
+        print(f" 推理时长：{diff_time} 生成速度： {frame_num / (diff_seconds / 60)} frame/min")
+
         if stop_on_next_loop:
             break
 

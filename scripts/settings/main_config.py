@@ -172,13 +172,13 @@ class MainConfig:
 
     init_grad = False  # True - compare result to real frame, False - to stylized frame
     grad_denoised = True  # fastest, on by default, calc grad towards denoised x instead of input x
+    keep_frame = [True] * 147 + [False]
     steps_schedule = {
-        0: 25
-    }  # schedules total steps. useful with low strength, when you end up with only 10 steps at 0.2 strength x50 steps. Increasing max steps for low strength gives model more time to get to your text prompt
+        0: 25}  # schedules total steps. useful with low strength, when you end up with only 10 steps at 0.2 strength x50 steps. Increasing max steps for low strength gives model more time to get to your text prompt
     style_strength_schedule = [
         0.7]  # [0.5]+[0.2]*149+[0.3]*3+[0.2] #use this instead of skip steps. It means how many steps we should do. 0.8 = we diffuse for 80% steps, so we skip 20%. So for skip steps 70% use 0.3
     flow_blend_schedule = [0.8]  # for example [0.1]*3+[0.999]*18+[0.3] will fade-in for 3 frames, keep style for 18 frames, and fade-out for the rest
-    cfg_scale_schedule = [15]  # text2image strength, 7.5 is a good default
+    cfg_scale_schedule = [7.5]  # text2image strength, 7.5 is a good default
     blend_json_schedules = True  # True - interpolate values between keyframes. False - use latest keyframe
 
     dynamic_thresh = 30
@@ -360,7 +360,6 @@ class MainConfig:
     cb_use_start_code = True  # fix noise per frame in masked diffusion callback
     cb_fixed_code = False  # fix noise across all animation in masked diffusion callback (overcooks fast af)
     cb_norm_latent = False  # norm cb latent to normal ditribution stats in masked diffusion callback
-
 
     use_legacy_fixed_code = False
 

@@ -1,11 +1,11 @@
 import time
 from types import SimpleNamespace
 
-import pydevd_pycharm
 
 from scripts.model_process.load_sd_k_model import load_sd_and_k_fusion
 from scripts.video_process.video_flow import set_video_path
 
+import pydevd_pycharm
 pydevd_pycharm.settrace('49.7.62.197', port=10090, stdoutToServer=True, stderrToServer=True)
 import gc
 import os
@@ -397,10 +397,12 @@ if __name__ == "__main__":
     main_config = MainConfig()
     model_config = ModelConfig()
     model_config.force_download = False
-    model_config.model_path = '/data/tianhao/stable-diffusion-webui/models/Stable-diffusion/deliberate_v2.safetensors'
+    # model_config.model_path = '/data/tianhao/stable-diffusion-webui/models/Stable-diffusion/deliberate_v2.safetensors'
+    model_config.model_path = '/data/tianhao/stable-diffusion-webui/models/Stable-diffusion/ChosenChineseStyleNsfw_v10.ckpt'
     model_config.controlnet_models_dir = '/data/tianhao/warp_fussion/ControlNet/models'
     video_config = VideoConfig()
-    video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
+    # video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
+    video_config.video_init_path = "/data/tianhao/warp_fussion/video/wuxia.mp4"
     set_video_path(video_config)
     load_sd_and_k_fusion(model_config, main_config)
     main_config.args = {

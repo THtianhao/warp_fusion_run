@@ -2,8 +2,9 @@ import scripts.settings.setting
 from scripts.utils.env import root_dir
 
 print(root_dir)
-# import pydevd_pycharm
-# pydevd_pycharm.settrace('49.7.62.197', port=10090, stdoutToServer=True, stderrToServer=True)
+import pydevd_pycharm
+
+pydevd_pycharm.settrace('49.7.62.197', port=10090, stdoutToServer=True, stderrToServer=True)
 
 from scripts.lora_embedding.lora_and_embedding_ import set_lora_embedding
 from scripts.lora_embedding.lora_embedding_config import LoraEmbeddingConfig
@@ -32,23 +33,28 @@ if __name__ == "__main__":
     main_config.check_consistency = False  # 不检查光流一致性
     main_config.fixed_seed = True
     main_config.warp_forward = False  # 进行光流融合
+    main_config.frame_range = [0, 0]
+    main_config.steps_schedule ={0: 0, 148: 25}
 
     # 使用红色背景
     main_config.use_background_mask = True
     main_config.background = 'init_video'
     main_config.background_source = 'red'
-    main_config.text_prompts = {0: ['Masterpiece, beautiful white marble statue']}
+    # main_config.text_prompts = {0: ['Masterpiece, beautiful white marble statue']}
+    main_config.text_prompts = {0: ['masterpiece, best quality, 1man, sword, glowing']}
 
-    # main_config.masked_guidance = True
+    # main_config.masked_guidance = True # 测试10和11用到
     # main_config.cc_masked_diffusion = 0.7
+    main_config.alpha_masked_diffusion = 0.5 # 测试12用到
 
     video_config = VideoConfig()
     # video_config.video_init_path = "./res/dance.mp4"
-    video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
+    # video_config.video_init_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
+    video_config.video_init_path = "/data/tianhao/warp_fussion/video/wuxia.mp4"
     # Video Mask Setting
     video_config.mask_source = 'init_video'
     video_config.extract_background_mask = True
-    video_config.mask_video_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
+    # video_config.mask_video_path = "/data/tianhao/jupyter-notebook/warpfusion/video/dance.mp4"
 
     set_video_path(video_config)
     extra_video_frame(video_config)
@@ -65,7 +71,7 @@ if __name__ == "__main__":
 
     model_config = ModelConfig()
     model_config.force_download = False
-    model_config.model_path = '/data/tianhao/stable-diffusion-webui/models/Stable-diffusion/deliberate_v2.safetensors'
+    model_config.model_path = '/data/tianhao/stable-diffusion-webui/models/Stable-diffusion/ChosenChineseStyleNsfw_v10.ckpt'
     model_config.controlnet_models_dir = '/data/tianhao/warp_fussion/ControlNet/models'
     load_sd_and_k_fusion(model_config, main_config)
     # 禁用tail_vae

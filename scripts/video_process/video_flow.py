@@ -6,6 +6,7 @@ import sys
 
 from PIL.Image import Image
 
+from scripts.settings.main_config import MainConfig
 from scripts.settings.setting import batchFolder, side_x, side_y
 from scripts.utils.cmd import gitclone, gitpull, pipi
 from scripts.utils.env import root_dir
@@ -77,22 +78,21 @@ def extra_background_mask(bean: VideoConfig):
         if bean.mask_source == 'init_video':
             bean.videoFramesAlpha = bean.videoFramesFolder + 'Alpha'
             createPath(bean.videoFramesAlpha)
-            cmd = ['python', f"{root_dir}/RobustVideoMattingCLI/rvm_cli.py", '--input_path', f'{bean.videoFramesFolder}', '--output_alpha', f"{root_dir}/alpha.mp4"]
+            cmd = ['python', f"{root_dir}/RobustVideoMattingCLI/rvm_cli.py", '--input_path', f'{bean.videoFramesFolder}', '--output_alpha',
+                   f"{root_dir}/{generate_file_hash(bean.video_init_path)[:10]}_alpha.mp4"]
             process = subprocess.Popen(cmd, cwd=f'{root_dir}', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = process.communicate()
-            print(stdout)
-            print(stderr)
-            extractFrames(f"{root_dir}/alpha.mp4", f"{bean.videoFramesAlpha}", 1, 0, 999999999)
+            extractFrames(f"{root_dir}/{generate_file_hash(bean.video_init_path)[:10]}_alpha.mp4", f"{bean.videoFramesAlpha}", 1, 0, 999999999)
         if bean.mask_source == 'mask_video':
             bean.videoFramesAlpha = bean.videoFramesFolder + 'Alpha'
             createPath(bean.videoFramesAlpha)
             maskVideoFrames = bean.videoFramesFolder + 'Mask'
             createPath(maskVideoFrames)
             extractFrames(bean.mask_video_path, f"{maskVideoFrames}", bean.extract_nth_frame, bean.start_frame, bean.end_frame)
-            cmd = ['python', f"{root_dir}/RobustVideoMattingCLI/rvm_cli.py", '--input_path', f'{maskVideoFrames}', '--output_alpha', f"{root_dir}/alpha.mp4"]
+            cmd = ['python', f"{root_dir}/RobustVideoMattingCLI/rvm_cli.py", '--input_path', f'{maskVideoFrames}', '--output_alpha', f"{root_dir}/{root_dir}/{generate_file_hash(bean.video_init_path)[:10]}_alpha.mp4"]
             process = subprocess.Popen(cmd, cwd=f'{root_dir}', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             print(process)
-            extractFrames(f"{root_dir}/alpha.mp4", f"{bean.videoFramesAlpha}", 1, 0, 999999999)
+            extractFrames(f"{root_dir}/{root_dir}/{generate_file_hash(bean.video_init_path)[:10]}_alpha.mp4", f"{bean.videoFramesAlpha}", 1, 0, 999999999)
     else:
         if bean.mask_source == 'init_video':
             bean.videoFramesAlpha = bean.videoFramesFolder
